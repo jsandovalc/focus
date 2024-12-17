@@ -1,0 +1,3 @@
+- Store database in home folder.
+- Add a created_at to tables.
+- Use a table for testing.
