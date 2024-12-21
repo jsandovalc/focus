@@ -9,11 +9,14 @@ def db() -> sqlite3.Connection:
     return sqlite3.connect("focus_test.db")
 
 
-def test_get_experience_on_rest(freezer, db):
-    """When ending a focus period, experience must be added."""
+@pytest.fixture(autouse=True)
+def drop_skills(db):
     with db:
         db.execute("DROP TABLE IF EXISTS skills;")
 
+
+def test_get_experience_on_rest(freezer, db):
+    """When ending a focus period, experience must be added."""
     app = Focus(db_name="focus_test.db")
 
     app.focus()
@@ -27,9 +30,6 @@ def test_get_experience_on_rest(freezer, db):
 
 def test_gain_a_level(db, freezer):
     """A level must be gained when achieving right amount of experience."""
-    with db:
-        db.execute("DROP TABLE IF EXISTS skills;")
-
     app = Focus(db_name="focus_test.db")
 
     app.focus()
@@ -47,9 +47,6 @@ def test_gain_a_level(db, freezer):
 
 def test_partial_pomodoro(db, freezer):
     """Grant partial xp, if less than a pomodoro achieved."""
-    with db:
-        db.execute("DROP TABLE IF EXISTS skills;")
-
     app = Focus(db_name="focus_test.db")
 
     app.focus()
@@ -61,5 +58,14 @@ def test_partial_pomodoro(db, freezer):
     assert app.current_skill.xp == 4
 
 
-def test_extra_pomodoro_time():
-    pass
+def test_extra_pomodoro_time_capping_at_max(db, freezer):
+    """Gain a little extra for longer focused times. Cap at 15 experience."""
+    app = Focus(db_name="focus_test.db")
+
+    app.focus()
+
+    freezer.tick(delta=dt.timedelta(minutes=100))
+
+    app.rest()
+
+    assert app.current_skill.xp == 15

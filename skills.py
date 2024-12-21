@@ -21,8 +21,7 @@ class Skill:
         :param time: Seconds in focused block.
 
         """
-        print(_BASE_XP, time, _POMODORO_BLOCK_SIZE)
-        self.xp += int(_BASE_XP * time // _POMODORO_BLOCK_SIZE)
+        self.xp += min(int(_BASE_XP * time // _POMODORO_BLOCK_SIZE), 15)
         if self.xp >= self.xp_to_next_level:
             self.level += 1
             self.xp = 0
