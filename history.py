@@ -37,8 +37,11 @@ class History:
         type TEXT NOT NULL CHECK (type IN ('rest', 'focus', 'pause'))
         );""")
 
-    def add_entries(self, entries: list[Lapse]):
+    def add_entries(self, entries: Lapse | list[Lapse]):
         """Add `entries` to the history of the user."""
+        if isinstance(entries, Lapse):
+            entries = [entries]
+
         with self.conn:
             for entry in entries:
                 try:

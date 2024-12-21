@@ -105,32 +105,41 @@ class Timer:
             paused_lapse.get_seconds() for paused_lapse in self._paused_lapses
         )
 
-    def start(self):
+    def start(self) -> Lapse | None:
+        """:return: A lapse, if one was created. `None` otherwise."""
         if self.running:
-            return
+            return None
 
         if not self.started:
             self._start_time = _now()
 
+        new_lapse = None
         if self.paused and self._pause_time:
             current_time = _now()
-            self._paused_lapses.append(
-                Lapse(start=self._pause_time, end=current_time, type=LapseType.rest)
+            new_lapse = Lapse(
+                start=self._pause_time, end=current_time, type=LapseType.rest
             )
+            self._paused_lapses.append(new_lapse)
             self._pause_time = None
 
-    def stop(self):
+        return new_lapse
+
+    def stop(self) -> Lapse | None:
+        """:return: The created lapse after the stop. `None` if no lapse was
+        created."""
+        new_lapse = None
         if self.running or self.paused:
-            self._running_lapses.append(
-                Lapse(
-                    start=self._start_time,
-                    end=_now(),
-                    type=LapseType.rest if self.paused else LapseType.focus,
-                )
+            new_lapse = Lapse(
+                start=self._start_time,
+                end=_now(),
+                type=LapseType.rest if self.paused else LapseType.focus,
             )
+            self._running_lapses.append(new_lapse)
             self.total_elapsed_time += self.get_elapsed_seconds()
             self._start_time = None
             self._pause_time = None
+
+        return new_lapse
 
     def pause(self):
         if not self.started:

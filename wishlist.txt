@@ -1,3 +1,76 @@
+- Create skills for the user.
+- Grant experience for focused time. (Choose skill). No more than 5 skills for now (or more?)
+- A general experience system.
+- Ruff plugins
+- What can I add to ruff?
+- ¿Qué pasa si pauso sin arrancar?
+- Desactivar el botón de pausa si no ha arrancado.
+- Show in real time the total focused time and the total break time.
+- Add a README.
+- Arreglar que quedó en negativo cuando pausé.
+- Arreglar que no se ve el rojo cuando ejecuto.
+- Fix the earned break time.
+- Refactor again. (Clean unused timer interface)
+- Original color is not black for main ticker.
+- Gamify
+- Upload to github.
+- Type of works
+- Add stop button (menú?).
+- Skills (my idea of gamification).
+- Another refactor.
+- Experience.
+- Sound? Tic tac might work.
+- Split other classes to other files.
+- Set goals? (sometimes, must switch between goals.)
+- Create an installable app.
+- Notifications?
+- Increase size of button.
+- Labels for "type of work".
+- Use sqlite to store between sessions.
+- Use a src directory structure.
+- tox?
+- Use red if balance is negative.
+- Add ticker sound?
+- Add experience (some way of grinding)
+- Parametrize labels.
+- How can I count/handle interruptions? Can read, can think.
+- Add keyboard shortcuts.
+- Make the ratio configurable.
+- Prizes for everyday usage. Habits ??
+- Restart the label to 00:00 when switching. (a minor visual improvement)
+- Handle interruptions? What is an interruption? How can the be handled? Counted?
+- Show watch in notifications area.
+- Show in red if balance negative (earned_time_label).
+- Store session: how?
+- Define principles (for example, sensible defaults, and, also, )
+- Show in red, when balance is negative (every second we can check)
+- add a version (0.0.1)
+- Subir a github.
+- Hacer más grande el botón de concentrase y descansar (será buena idea?)
+- Actualizar en tiempo real lo que va pasando.
+- Adicionar una meta.
+- Mostrar notificaciones.
+- Pestañas para lo que quiero.
+- Definir (con IA), qué estadísticas quiero almacenar.
+- El README con fotos.
+- Tests to test file.
+- En lugar de minutes, mostrar minute si solo hay un minuto de descanso ganado.
+- ¿Cómo organizar mejor estas tareas? En un archivo.
+- If history is stored, can the session be restored?
+- Todo lists?
+- Si está pausado y se da en Focus!, despausar.
+- Handle more than 99 minutes in clock.
+- File with wishlist.
+- Where to store config?
+- Add a pre-commit.
+- Add documentation.
+- Add mypy.
+- Implement a goals system.
 - Store database in home folder.
 - Add a created_at to tables.
 - Use a table for testing.
+- How to handle forgiving to turn off the clock?
+- Show hours in the clock. Going beyond 60 does not make sense.
+- Bonus for streaks (daily, weekly, monthly).
+- Skils tree.
+- Store history (I can use sqlite) (must be fixed)
