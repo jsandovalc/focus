@@ -1,7 +1,9 @@
-import pytest
 import datetime as dt
-from focus import Focus
 import sqlite3
+
+import pytest
+
+from focus import Focus
 
 
 @pytest.fixture

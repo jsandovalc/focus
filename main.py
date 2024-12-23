@@ -54,9 +54,18 @@ class FocusApp(toga.App):
             on_press=self.toggle_timers,
             style=Pack(padding=10, alignment=CENTER),
         )
+        self.skills_selection_box = toga.Box(style=Pack(direction=COLUMN, alignment=CENTER, padding=10))
+        skills: list[str] = [
+            skill.name for skill in self.focus_app.skills.values()
+        ]
+        print(skills)
+        self.skill_selection = toga.Selection(items=skills, on_change=self.change_selected_skill)
+        self.skill_selection.value = skills[0]
+        self.skills_selection_box.add(self.skill_selection)
         button_box.add(self.pause_button)
         button_box.add(self.start_button)
         timer_box.add(button_box)
+        timer_box.add(self.skills_selection_box)
 
         self.total_focused_time_label = toga.Label(
             "Total focused time: 00:00", style=Pack(padding=10, alignment=CENTER)
@@ -96,18 +105,15 @@ class FocusApp(toga.App):
             style=Pack(padding=10, alignment=CENTER),
         )
 
-        # stats_box.add(self.stats_focus_label)
-        # stats_box.add(self.stats_rest_label)
-        # stats_box.add(self.stats_focus_yesterday_label)
-        # stats_box.add(self.stats_rest_yesterday_label)
-        #
+        self._skills_labels = []
         for skill in self.focus_app.skills.values():
-            stats_box.add(toga.Label(f"{skill.name}: {skill.level}"))
-            stats_box.add(
-                toga.Label(
-                    f"Current xp: {skill.xp}. Next level: {skill.xp_to_next_level}"
-                )
+            skill_label = toga.Label(f"{skill.name}: {skill.level}")
+            xp_label = toga.Label(
+                f"Current xp: {skill.xp}. Next level: {skill.xp_to_next_level}"
             )
+            stats_box.add(skill_label)
+            stats_box.add(xp_label)
+            self._skills_labels.append((skill, skill_label, xp_label))
 
         tabs_container = toga.OptionContainer(
             content=[("Timer", timer_box), ("Stats", stats_box)]
@@ -117,6 +123,10 @@ class FocusApp(toga.App):
         self.main_window.show()
 
         self._counting_task = asyncio.create_task(self._update_timers())
+
+    def change_selected_skill(self, widget):
+        if not self.focus_app.set_current_skill(widget.value):
+            widget.value = self.focus_app.current_skill.name
 
     def toggle_pause(self, widget) -> None:
         if self.focus_app.paused:
@@ -146,6 +156,14 @@ class FocusApp(toga.App):
         )
         self.total_break_time_label.text = f"Total break time: {duration_from_seconds(self.focus_app.get_total_rested_seconds())}"
         self.start_button.text = "Focus!"
+
+        print(self._skills_labels)
+        for skill, skill_label, xp_label in self._skills_labels:
+            print("Updating label", skill, skill_label, xp_label)
+            skill_label.text = f"{skill.name}: {skill.level}"
+            xp_label.text = (
+                f"Current xp: {skill.xp}. Next level: {skill.xp_to_next_level}"
+            )
 
     async def _update_timers(self):
         """Updates the timer labels every second."""

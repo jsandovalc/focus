@@ -1,10 +1,10 @@
-from dataclasses import dataclass, fields
 import sqlite3
-
+from dataclasses import dataclass, fields
 
 _BASE_XP_TO_NEXT_LEVEL = 100
 _POMODORO_BLOCK_SIZE = 25 * 60  # seconds
 _BASE_XP = 10
+_CAP_XP_AT = 15
 
 
 @dataclass
@@ -21,7 +21,8 @@ class Skill:
         :param time: Seconds in focused block.
 
         """
-        self.xp += min(int(_BASE_XP * time // _POMODORO_BLOCK_SIZE), 15)
+        print("Granting experience to:", self.name, "for time:", time, "seconds. ", _BASE_XP, _POMODORO_BLOCK_SIZE, _CAP_XP_AT)
+        self.xp += min(int(_BASE_XP * time // _POMODORO_BLOCK_SIZE), _CAP_XP_AT)
         if self.xp >= self.xp_to_next_level:
             self.level += 1
             self.xp = 0

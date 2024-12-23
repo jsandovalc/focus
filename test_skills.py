@@ -1,5 +1,7 @@
-import pytest
 import sqlite3
+
+import pytest
+
 from skills import SkillRepository, SkillUpdate
 
 
