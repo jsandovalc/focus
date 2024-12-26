@@ -54,12 +54,13 @@ class FocusApp(toga.App):
             on_press=self.toggle_timers,
             style=Pack(padding=10, alignment=CENTER),
         )
-        self.skills_selection_box = toga.Box(style=Pack(direction=COLUMN, alignment=CENTER, padding=10))
-        skills: list[str] = [
-            skill.name for skill in self.focus_app.skills.values()
-        ]
-        print(skills)
-        self.skill_selection = toga.Selection(items=skills, on_change=self.change_selected_skill)
+        self.skills_selection_box = toga.Box(
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
+        )
+        skills: list[str] = [skill.name for skill in self.focus_app.skills.values()]
+        self.skill_selection = toga.Selection(
+            items=skills, on_change=self.change_selected_skill
+        )
         self.skill_selection.value = skills[0]
         self.skills_selection_box.add(self.skill_selection)
         button_box.add(self.pause_button)
@@ -82,28 +83,28 @@ class FocusApp(toga.App):
         timer_box.add(self.earned_break_time_label)
 
         stats_box = toga.Box(style=Pack(direction=COLUMN, alignment=CENTER, padding=10))
-        today_stats = self.focus_app.history.get_statistics()
-        yesterday_stats = self.focus_app.history.get_statistics()
-        self.stats_focus_label = toga.Label(
-            f"Today's focused time: {duration_from_seconds(today_stats.total_focus_time)}",
-            style=Pack(padding=10, alignment=CENTER),
-        )
-        self.stats_focus_label = toga.Label(
-            f"Today's focused time: {duration_from_seconds(today_stats.total_focus_time)}",
-            style=Pack(padding=10, alignment=CENTER),
-        )
-        self.stats_rest_label = toga.Label(
-            f"Today's rest time: {duration_from_seconds(today_stats.total_break_time)}",
-            style=Pack(padding=10, alignment=CENTER),
-        )
-        self.stats_focus_yesterday_label = toga.Label(
-            f"Yesterday's focused time: {duration_from_seconds(yesterday_stats.total_focus_time)}",
-            style=Pack(padding=10, alignment=CENTER),
-        )
-        self.stats_rest_yesterday_label = toga.Label(
-            f"Yesterday's rest time: {duration_from_seconds(yesterday_stats.total_break_time)}",
-            style=Pack(padding=10, alignment=CENTER),
-        )
+        # today_stats = self.focus_app.history.get_statistics()
+        # yesterday_stats = self.focus_app.history.get_statistics()
+        # self.stats_focus_label = toga.Label(
+        #     f"Today's focused time: {duration_from_seconds(today_stats.total_focus_time)}",
+        #     style=Pack(padding=10, alignment=CENTER),
+        # )
+        # self.stats_focus_label = toga.Label(
+        #     f"Today's focused time: {duration_from_seconds(today_stats.total_focus_time)}",
+        #     style=Pack(padding=10, alignment=CENTER),
+        # )
+        # self.stats_rest_label = toga.Label(
+        #     f"Today's rest time: {duration_from_seconds(today_stats.total_break_time)}",
+        #     style=Pack(padding=10, alignment=CENTER),
+        # )
+        # self.stats_focus_yesterday_label = toga.Label(
+        #     f"Yesterday's focused time: {duration_from_seconds(yesterday_stats.total_focus_time)}",
+        #     style=Pack(padding=10, alignment=CENTER),
+        # )
+        # self.stats_rest_yesterday_label = toga.Label(
+        #     f"Yesterday's rest time: {duration_from_seconds(yesterday_stats.total_break_time)}",
+        #     style=Pack(padding=10, alignment=CENTER),
+        # )
 
         self._skills_labels = []
         for skill in self.focus_app.skills.values():
@@ -115,18 +116,62 @@ class FocusApp(toga.App):
             stats_box.add(xp_label)
             self._skills_labels.append((skill, skill_label, xp_label))
 
-        tabs_container = toga.OptionContainer(
-            content=[("Timer", timer_box), ("Stats", stats_box)]
+        self._create_goals_box()
+        self.tabs_container = toga.OptionContainer(
+            content=[
+                ("Timer", timer_box),
+                ("Stats", stats_box),
+                ("Goals", self.goals_box),
+            ]
         )
 
-        self.main_window.content = tabs_container
+        self.main_window.content = self.tabs_container
         self.main_window.show()
 
         self._counting_task = asyncio.create_task(self._update_timers())
 
+    def _create_goals_box(self):
+        self.goals = {}
+        self.goals_box = toga.Box(
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
+        )
+
+        button_box = toga.Box(
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
+        )
+        add_goal_button = toga.Button(
+            "New goal",
+            on_press=self.add_goal,
+            style=Pack(padding=10, alignment=CENTER),
+        )
+        button_box.add(add_goal_button)
+
+        self.goals_box.add(button_box)
+
+        for goal in self.focus_app.goals:
+            goal_box = toga.Box(
+                style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
+            )
+            label = toga.Label(
+                goal.title,
+                style=Pack(
+                    padding=10,
+                    alignment=CENTER,
+                    font_size=150,
+                    display="pack",
+                    direction="column",
+                    text_align=CENTER,
+                ),
+            )
+            goal_box.add(label)
+            self.goals_box.add(goal_box)
+
     def change_selected_skill(self, widget):
         if not self.focus_app.set_current_skill(widget.value):
             widget.value = self.focus_app.current_skill.name
+
+    def add_goal(self, widget):
+        pass
 
     def toggle_pause(self, widget) -> None:
         if self.focus_app.paused:
@@ -159,6 +204,7 @@ class FocusApp(toga.App):
 
         print(self._skills_labels)
         for skill, skill_label, xp_label in self._skills_labels:
+            skill = self.focus_app.skills[skill.name]
             print("Updating label", skill, skill_label, xp_label)
             skill_label.text = f"{skill.name}: {skill.level}"
             xp_label.text = (

@@ -1,122 +1,55 @@
 import sqlite3
-from dataclasses import dataclass, fields
+from dataclasses import fields
+from models import Skill
+from pydantic import BaseModel
+from db import get_session
+from sqlmodel import select
+from models import Skill
 
-_BASE_XP_TO_NEXT_LEVEL = 100
-_POMODORO_BLOCK_SIZE = 25 * 60  # seconds
-_BASE_XP = 10
-_CAP_XP_AT = 15
 
-
-@dataclass
-class Skill:
+class SkillUpdate(BaseModel):
     id: int
-    name: str
-    level: int = 1
-    xp: int = 0
-    xp_to_next_level: int = _BASE_XP_TO_NEXT_LEVEL
-
-    def gain_xp(self, time: int):
-        """Un leveling, extra xp (more thant `xp_to_next_level`) is discarded.
-
-        :param time: Seconds in focused block.
-
-        """
-        print("Granting experience to:", self.name, "for time:", time, "seconds. ", _BASE_XP, _POMODORO_BLOCK_SIZE, _CAP_XP_AT)
-        self.xp += min(int(_BASE_XP * time // _POMODORO_BLOCK_SIZE), _CAP_XP_AT)
-        if self.xp >= self.xp_to_next_level:
-            self.level += 1
-            self.xp = 0
-            self.xp_to_next_level = _BASE_XP_TO_NEXT_LEVEL * self.level
-
-
-@dataclass
-class SkillUpdate:
-    id: int
-    name: str = None
-    level: int = None
-    xp: int = None
-    xp_to_next_level: int = None
+    name: str | None = None
+    level: int | None = None
+    xp: int | None = None
+    xp_to_next_level: int | None = None
 
 
 class SkillRepository:
-    def __init__(self, db_path: str):
-        self._db_path = db_path
-
-        self._conn = sqlite3.connect(
-            db_path, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
-        )
-        self._conn.row_factory = sqlite3.Row
-
-        self._conn.execute("""
-        CREATE TABLE IF NOT EXISTS skills (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL UNIQUE,
-        level INTEGER NOT NULL DEFAULT 1,
-        xp INTEGER NOT NULL DEFAULT 0,
-        xp_to_next_level INTEGER NOT NULL DEFAULT 100
-        );
-        """)
-
     def get_skill_by_id(self, id: int) -> Skill | None:
         """:return: None if no skill with `id`"""
-        result = self._conn.execute(
-            """
-            SELECT id, name, level, xp, xp_to_next_level FROM skills WHERE id = ?;
-        """,
-            (id,),
-        )
-
-        row = result.fetchone()
-
-        if row:
-            return Skill(**row)
-        return None
+        with get_session() as session:
+            return session.exec(select(Skill).where(Skill.id == id)).first()
 
     def get_skill_by_name(self, name: str) -> Skill | None:
-        result = self._conn.execute(
-            """
-            SELECT id, name, level, xp, xp_to_next_level FROM skills WHERE name = ?;
-        """,
-            (name,),
-        )
-        row = result.fetchone()
+        with get_session() as session:
+            return session.exec(select(Skill).where(Skill.name == name)).first()
 
-        if row:
-            return Skill(**row)
-        return None
+    def create_skill(self, name: str) -> Skill | None:
+        """Create a new skill and tries to retrieve it to return it.
 
-    def create(self, name: str) -> Skill:
-        with self._conn:
-            result = self._conn.execute(
-                """
-            INSERT INTO skills (name)
-            VALUES (?)""",
-                (name,),
-            )
+        :return: `None` if couldn't find the created `Skill`.
 
-            skill_id = result.lastrowid
+        """
+        with get_session() as session:
+            session.add(Skill(name=name))
+            session.commit()
 
-            return self.get_skill_by_id(skill_id)
+        return self.get_skill_by_name(name)
+
+    def create(self, *args, **kwargs) -> Skill | None:
+        return self.create_skill(*args, **kwargs)
 
     def update(self, skill: SkillUpdate) -> Skill:
-        with self._conn:
-            setters = []
-            values = []
-            for field in fields(skill):
-                if field.name == "id":
-                    continue
+        with get_session() as session:
+            skill_to_update = session.exec(
+                select(Skill).where(Skill.id == skill.id)
+            ).first()
 
-                value = getattr(skill, field.name)
+            for field, value in skill.model_dump(exclude_unset=True).items():
+                setattr(skill_to_update, field, value)
 
-                if value is not None:
-                    setters.append(f"{field.name} = ?")
-                    values.append(value)
+            session.add(skill_to_update)
+            session.commit()
 
-            values.append(skill.id)
-
-            query = f"""
-            UPDATE skills SET {", ".join(setters)} WHERE id = ?
-            """
-            result = self._conn.execute(query, tuple(values))
-
-            return self.get_skill_by_id(result.lastrowid)
+        return self.get_skill_by_id(skill.id)

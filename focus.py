@@ -48,9 +48,16 @@ XP-Earning Actions:
 
 
 """
+
 from history import History
 from skills import SkillRepository, SkillUpdate
 from timer import Timer
+from sqlmodel import SQLModel, create_engine
+from engine import get_engine
+from goals import GoalsRepository, Goal
+from typing import Callable
+
+import db
 
 
 class Focus:
@@ -65,19 +72,19 @@ class Focus:
 
     """
 
-    def __init__(self, db_name: str = "focus.db"):
+    def __init__(self):
+        db.create_db_and_tables()
         self.focused_timer = Timer()
         self.breaks_timer = Timer()
 
         self.earned_break_time: int = 0
         self.focus_break_ratio = 3
 
-        self.db_name = db_name
-        self.history = History(self.db_name)
+        # self.history = History(self.db_name)
 
         self.skills = {}
 
-        self.skills_repository = SkillRepository(self.db_name)
+        self.skills_repository = SkillRepository()
 
         int_skill = self.skills_repository.get_skill_by_name("Intelligence")
         if not int_skill:
@@ -102,25 +109,11 @@ class Focus:
 
         self.current_skill = int_skill
 
-        # For every `_pomodoro_size` minutes, grant `_base_xp` to `current_skill`
-        self._base_xp = 10
-        self._pomodoro_size = 25 * 60  # In seconds
+        self.goals_repository = GoalsRepository()
 
-        # TODO: Add
-        # willpower (focus/discipline)
-        # Dexterity (efficiency/speed)
-        # Charisma (Communication)
-        # Vitality (Energy/Well-being)
-        # Perception
-        # Alchemy
-        # Discipline
-        #
-        # Others
-        # Lore (Knowledger)
-        # Artifice (crafting/creation)
-        #
-        # How to handle skill trees?
-        #
+        self.goals: list[Goal] = self.goals_repository.all_goals()
+
+        self.goal_added_callbacks: list[Callable[Goal]] = []
 
     @property
     def focusing(self) -> bool:
@@ -138,18 +131,26 @@ class Focus:
     def paused(self) -> bool:
         return self.focused_timer.paused or self.breaks_timer.paused
 
+    def add_goal(self, goal: Goal):
+        self.goals.append(goal)
+
+        goal = self.goals_repository.add_goal(goal)
+
+        for callback in self.goal_added_callbacks:
+            callback(goal)
+
     def focus(self):
         """I start a focus session."""
         if self.resting:
             self.earned_break_time -= self.get_current_clock_time()
         lapse = self.breaks_timer.stop()
 
-        if lapse:
-            self.history.add_entries(lapse)
+        # if lapse:
+        #     self.history.add_entries(lapse)
 
         lapse = self.focused_timer.start()
-        if lapse:
-            self.history.add_entries(lapse)
+        # if lapse:
+        #     self.history.add_entries(lapse)
 
     def set_current_skill(self, name: str) -> bool:
         """:return: True if skill change successfully."""
@@ -183,12 +184,12 @@ class Focus:
             self.earned_break_time += current_clock_time // self.focus_break_ratio
 
         lapse = self.focused_timer.stop()
-        if lapse:
-            self.history.add_entries(lapse)
+        # if lapse:
+        #     self.history.add_entries(lapse)
 
         lapse = self.breaks_timer.start()
-        if lapse:
-            self.history.add_entries(lapse)
+        # if lapse:
+        #     self.history.add_entries(lapse)
 
     def pause(self):
         if self.focusing:
@@ -199,12 +200,12 @@ class Focus:
     def unpause(self):
         if self.focused_timer.paused:
             lapse = self.focused_timer.start()
-            if lapse:
-                self.history.add_entries(lapse)
+            # if lapse:
+            #     self.history.add_entries(lapse)
         elif self.breaks_timer.paused:
             lapse = self.breaks_timer.start()
-            if lapse:
-                self.history.add_entries(lapse)
+            # if lapse:
+            #     self.history.add_entries(lapse)
 
     def get_current_clock_time(self) -> int:
         """I return elapsed time for current working timer."""

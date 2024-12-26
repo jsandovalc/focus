@@ -4,6 +4,9 @@ import sqlite3
 import pytest
 
 from focus import Focus
+from goals import GoalsRepository, Goal
+from skills import SkillRepository
+from enums import Difficulty
 
 
 @pytest.fixture
@@ -19,7 +22,7 @@ def drop_skills(db):
 
 def test_get_experience_on_rest(freezer, db):
     """When ending a focus period, experience must be added."""
-    app = Focus(db_name="focus_test.db")
+    app = Focus()
 
     app.focus()
 
@@ -32,7 +35,7 @@ def test_get_experience_on_rest(freezer, db):
 
 def test_gain_a_level(db, freezer):
     """A level must be gained when achieving right amount of experience."""
-    app = Focus(db_name="focus_test.db")
+    app = Focus()
 
     app.focus()
 
@@ -49,7 +52,7 @@ def test_gain_a_level(db, freezer):
 
 def test_partial_pomodoro(db, freezer):
     """Grant partial xp, if less than a pomodoro achieved."""
-    app = Focus(db_name="focus_test.db")
+    app = Focus()
 
     app.focus()
 
@@ -62,7 +65,7 @@ def test_partial_pomodoro(db, freezer):
 
 def test_extra_pomodoro_time_capping_at_max(db, freezer):
     """Gain a little extra for longer focused times. Cap at 15 experience."""
-    app = Focus(db_name="focus_test.db")
+    app = Focus()
 
     app.focus()
 
@@ -71,3 +74,35 @@ def test_extra_pomodoro_time_capping_at_max(db, freezer):
     app.rest()
 
     assert app.current_skill.xp == 15
+
+
+def test_load_goals_from_db():
+    """Skills must be loaded."""
+    skill = SkillRepository().create_skill("test_skill")
+    goal = GoalsRepository().create_goal(
+        title="test",
+        description="testing",
+        difficulty=Difficulty.EASY,
+        skill_id=skill.id,
+    )
+
+    app = Focus()
+
+    assert len(app.goals) == 1
+
+
+def test_add_a_new_goal():
+    """When a new goal is added, it get's stored and a callback is raised."""
+    skill = SkillRepository().create_skill("test_skill")
+    called = False
+
+    def callback(_):
+        nonlocal called
+        called = True
+
+    app = Focus()
+    app.goal_added_callbacks.append(callback)
+    app.add_goal(Goal(title="Test", difficulty=Difficulty.PROJECT, skill_id=skill.id))
+
+    assert len(app.goals) == 1
+    assert called
