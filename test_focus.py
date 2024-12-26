@@ -3,10 +3,10 @@ import sqlite3
 
 import pytest
 
-from focus import Focus
-from goals import GoalsRepository, Goal
-from skills import SkillRepository
 from enums import Difficulty
+from focus import Focus
+from goals import Goal, GoalsRepository
+from skills import SkillRepository
 
 
 @pytest.fixture

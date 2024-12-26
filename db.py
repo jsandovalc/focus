@@ -1,5 +1,4 @@
-from sqlmodel import create_engine, SQLModel, Session
-import models  # Must import models to assure tables will be created.
+from sqlmodel import Session, SQLModel, create_engine
 
 sqlite_file_name = "focus.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"

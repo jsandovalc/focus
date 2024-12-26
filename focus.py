@@ -49,15 +49,12 @@ XP-Earning Actions:
 
 """
 
-from history import History
-from skills import SkillRepository, SkillUpdate
-from timer import Timer
-from sqlmodel import SQLModel, create_engine
-from engine import get_engine
-from goals import GoalsRepository, Goal
-from typing import Callable
+from collections.abc import Callable
 
 import db
+from goals import Goal, GoalsRepository
+from skills import SkillRepository, SkillUpdate
+from timer import Timer
 
 
 class Focus:

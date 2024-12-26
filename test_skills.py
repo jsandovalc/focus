@@ -1,13 +1,6 @@
-import sqlite3
 
-import pytest
-from sqlalchemy.engine import Engine
 
 from skills import SkillRepository, SkillUpdate
-from sqlmodel import create_engine, SQLModel, Session
-from sqlmodel.pool import StaticPool
-
-import db
 
 
 def test_store_load_skill():

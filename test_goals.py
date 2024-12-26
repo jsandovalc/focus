@@ -1,6 +1,4 @@
-import sqlite3
-import pytest
-from goals import GoalsRepository, Difficulty
+from goals import Difficulty, GoalsRepository
 from skills import SkillRepository
 
 

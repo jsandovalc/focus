@@ -1,6 +1,5 @@
 import pytest
-from skills import SkillRepository, SkillUpdate
-from sqlmodel import create_engine, SQLModel, Session
+from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.pool import StaticPool
 
 import db

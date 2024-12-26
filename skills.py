@@ -1,9 +1,7 @@
-import sqlite3
-from dataclasses import fields
-from models import Skill
 from pydantic import BaseModel
-from db import get_session
 from sqlmodel import select
+
+from db import get_session
 from models import Skill
 
 
