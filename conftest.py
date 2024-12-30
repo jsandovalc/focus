@@ -1,6 +1,8 @@
 import pytest
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, delete
 from sqlmodel.pool import StaticPool
+from db import get_session
+import models
 
 import db
 
@@ -19,3 +21,11 @@ def engine():
     yield engine
 
     db._get_session_internal = old_internal_session
+
+
+@pytest.fixture(autouse=True)
+def delete_skills():
+    with get_session() as session:
+        session.exec(delete(models.GoalModel))
+        session.exec(delete(models.Skill))
+        session.commit()

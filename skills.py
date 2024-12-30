@@ -38,7 +38,10 @@ class SkillRepository:
     def create(self, *args, **kwargs) -> Skill | None:
         return self.create_skill(*args, **kwargs)
 
-    def update(self, skill: SkillUpdate) -> Skill:
+    def update(self, *args, **kwargs) -> Skill:
+        return self.update_skill(*args, **kwargs)
+
+    def update_skill(self, skill: SkillUpdate) -> Skill:
         with get_session() as session:
             skill_to_update = session.exec(
                 select(Skill).where(Skill.id == skill.id)

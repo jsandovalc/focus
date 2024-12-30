@@ -1,46 +1,32 @@
-- Refactor again. (Clean unused timer interface) (Refactor the interface)
-- Add a goals sytem.
-  - Create goals. Associate skills.
-  - Display goals.
-  - Achieve a goal.
-  - Receive experience for a goal.
-- Fix bug updating the values.
-- A general experience system.
-- Ruff plugins
-- ¿Qué pasa si pauso sin arrancar?
 - Add a README.
+- Add skills like "programming", "dancing", etc.
+- Improve goals UI.
+- A general experience system. (Like a user). Which criteria to use? I can add
+  experience to character and upgrade it.
+- Ruff plugins
 - Desactivar el botón de pausa si no ha arrancado.
-- Original color is not black for main ticker.
-- Show in real time the total focused time and the total break time.
-- Use a src directory structure.
-- Arreglar que quedó en negativo cuando pausé.
 - Upload to github.
+- Original color is not black for main ticker.
+- Show in real time the total focused time and the total break time. (done?)
+- Use a src directory structure.
 - Arreglar que no se ve el rojo cuando ejecuto.
-- Fix the earned break time.
 - Add stop button (menú?).
-- Skills (my idea of gamification).
 - Another refactor.
 - Sound? Tic tac might work.
-- Split other classes to other files.
-- Set goals? (sometimes, must switch between goals.)
 - Create an installable app.
 - Notifications?
 - Increase size of button.
-- Labels for "type of work".
 - Use sqlite to store between sessions.
 - tox?
-- Parametrize labels.
 - How can I count/handle interruptions? Can read, can think.
 - Add keyboard shortcuts.
 - Make the ratio configurable. In the config.
-- Prizes for everyday usage. Habits ??
 - Restart the label to 00:00 when switching. (a minor visual improvement)
-- Handle interruptions? What is an interruption? How can the be handled? Counted? (Pause)
-- Show watch in notifications area.
+- Show watch in notifications area. (with controls to stop, pause, start).
 - Show in red if balance negative (earned_time_label).
-- Store session: how?
+- Store session: how? In DB.
+- Prizes for everyday usage. Habits ??
 - Show in red, when balance is negative (every second we can check)
-- add a version (0.0.1)
 - Subir a github.
 - Hacer más grande el botón de concentrase y descansar (será buena idea?)
 - Actualizar en tiempo real lo que va pasando.
@@ -70,10 +56,24 @@
 - Skils tree.
 - Store history (I can use sqlite) (must be fixed)
 - Order ui file.
-- Use somethign like SQLModel to handle
-- Celebrate upping a level.
+- Celebrate upping a level. Event when increasing a level.
 - Config file for skills.
 - Refactor skills to use a file.
 - Restore previous session.
 - Complex skills (skills tree, specific skills)
 - What happens if I forget to stop?
+- Handle close (save state? save session?)
+- Update xp labels with observer pattern.
+- Even more refactor to UI.
+- Improve UI for goals.
+- Add a title.
+- Add a sprite for character.
+- Implement a big stop button.
+- Add a toml with configuration.
+- Add subskills or specific skills.
+- Remove prints.
+- Ruff the project.
+- Remove the gain_xp/gain_fixed_xp difference.
+- Handle long blocks (cancel current block?). Makes sense.
+- Remove xp capping.
+- Show difficulty in goals.

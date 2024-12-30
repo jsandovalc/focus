@@ -1,60 +1,10 @@
-"""Current skills:
-
-Intelligence:
-
-    Reading: Non-fiction books, academic articles, research papers, complex texts.
-    Studying: Completing course modules, taking notes, reviewing material, preparing for exams.
-    Learning New Concepts: Mastering new ideas in any field.
-    Problem Solving: Solving logic puzzles, riddles, brain teasers, mathematical problems.
-    Critical Thinking: Analyzing information, evaluating arguments, forming reasoned judgments.
-    Researching: Gathering and synthesizing information for projects or personal enrichment.
-
-
-Willpower:
-
-XP-Earning Actions:
-
-    Completing Pomodoros: Successfully finishing focused work intervals.
-    Achieving Focus Goals: Reaching daily or weekly targets for focused time.
-    Practicing Mindfulness: Engaging in meditation, mindful breathing, or body scan exercises.
-    Resisting Distractions: Actively avoiding or minimizing interruptions during focused work.
-    Overcoming Procrastination: Starting and completing tasks despite the urge to delay.
-    Maintaining a Consistent Schedule: Sticking to a planned routine.
-
-Dexterity:
-
-XP-Earning Actions:
-
-    Completing Tasks Ahead of Schedule: Finishing tasks earlier than the deadline.
-    Improving Processes: Streamlining workflows, finding more efficient ways to work.
-    Using Time Management Techniques: Implementing methods like Eisenhower Matrix, timeboxing, or other productivity strategies.
-    Effectively Multitasking (Use with Caution): Successfully juggling multiple tasks when appropriate (multitasking can be detrimental to focus if not done strategically).
-    Developing Keyboard Shortcuts: Learning and using shortcuts to speed up work in specific applications.
-
-
-Vitality:
-XP-Earning Actions:
-
-    Getting Enough Sleep: Aiming for 7-9 hours of quality sleep per night.
-    Exercising: Engaging in physical activity, such as going to the gym, running, or playing sports.
-    Healthy Eating: Consuming nutritious meals and snacks.
-    Taking Breaks: Stepping away from work to rest and recharge.
-    Managing Stress: Practicing relaxation techniques, engaging in hobbies, spending time in nature.
-    Mindful Breaks: Taking breaks that involve mindfulness or meditation, rather than just switching to another screen.
-
-
-## Specialized sklils
-
-
-
-"""
-
 from collections.abc import Callable
 
 import db
 from goals import Goal, GoalsRepository
 from skills import SkillRepository, SkillUpdate
 from timer import Timer
+from signals import goal_completed
 
 
 class Focus:
@@ -110,7 +60,7 @@ class Focus:
 
         self.goals: list[Goal] = self.goals_repository.all_goals()
 
-        self.goal_added_callbacks: list[Callable[Goal]] = []
+        self.goal_added_callbacks: list[Callable[[Goal]]] = []
 
     @property
     def focusing(self) -> bool:
@@ -131,10 +81,23 @@ class Focus:
     def add_goal(self, goal: Goal):
         self.goals.append(goal)
 
-        goal = self.goals_repository.add_goal(goal)
+        self.goals_repository.add_goal(goal)
 
         for callback in self.goal_added_callbacks:
             callback(goal)
+
+    def complete_goal(self, goal_id: int) -> bool:
+        """`False` means goal was already completed. No callbacks were run."""
+        goal = self.goals_repository.get_goal_by_id(goal_id)
+
+        if goal.completed:
+            return False
+
+        goal = self.goals_repository.complete_goal(goal_id)
+
+        goal_completed.send(goal)
+
+        return True
 
     def focus(self):
         """I start a focus session."""
@@ -180,13 +143,8 @@ class Focus:
 
             self.earned_break_time += current_clock_time // self.focus_break_ratio
 
-        lapse = self.focused_timer.stop()
-        # if lapse:
-        #     self.history.add_entries(lapse)
-
-        lapse = self.breaks_timer.start()
-        # if lapse:
-        #     self.history.add_entries(lapse)
+        self.focused_timer.stop()
+        self.breaks_timer.start()
 
     def pause(self):
         if self.focusing:
