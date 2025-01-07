@@ -7,10 +7,13 @@ from enums import Difficulty
 from focus import Focus
 from goals import Goal, GoalsRepository
 from skills import SkillRepository
+from repositories import SkillRepository as NewSkillRepository, StatsRepository
+from domain import Skill, Stat
 from signals import goal_completed
 from db import get_session
 from sqlmodel import delete
 import models
+import skills
 
 
 def test_get_experience_on_rest(freezer):
@@ -165,3 +168,29 @@ def test_complete_task_gain_several():
 
     assert skill.xp == 200
     assert skill.level == 3
+
+
+def test_skills_loaded_from_database():
+    """When creating a focus instnce, skills must be loaded.
+
+    Right now, we'll use `new_skills`, but, eventually, this will become skills.
+
+    """
+    skill_repository = NewSkillRepository()
+    skill_repository.create_skill(Skill(name="TestProgramming"))
+    skill_repository.create_skill(Skill(name="TestReading"))
+
+    app = Focus()
+
+    assert len(app.new_skills) == 2
+
+
+def test_stats_loaded_from_database():
+    """When creating a focus instance, base stats must be loaded."""
+    stats_repository = StatsRepository()
+    stats_repository.create_stat(Stat(name="TestStrength"))
+    stats_repository.create_stat(Stat(name="TestIntelligence"))
+
+    app = Focus()
+
+    assert len(app.stats) == 2

@@ -1,6 +1,5 @@
-- Add a README.
 - Add skills like "programming", "dancing", etc.
-- Improve goals UI.
+- Bug: No actualiza la experiencia (por alguna razón).
 - A general experience system. (Like a user). Which criteria to use? I can add
   experience to character and upgrade it.
 - Ruff plugins
@@ -77,3 +76,10 @@
 - Handle long blocks (cancel current block?). Makes sense.
 - Remove xp capping.
 - Show difficulty in goals.
+- Tal vez un sistema de recompensas (o de moneda para recompensas).
+- Improve even more goals UI. Make it look like a table.
+- Improve the stats tab (add a sprite, just for fun).
+- Show timers with hour.
+- Notify when going red.
+- Edit a goal.
+- Hide the skill in break?

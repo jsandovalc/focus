@@ -2,7 +2,7 @@ from sqlmodel import Field, Relationship, SQLModel
 from typing import Callable
 from enums import Difficulty
 from pydantic import PrivateAttr
-from domain import Goal
+from domain import Goal, SkillBase, StatBase
 from signals import level_gained, xp_gained
 
 _BASE_XP_TO_NEXT_LEVEL = 100
@@ -28,6 +28,7 @@ class Skill(SQLModel, table=True):
 
     def gain_fixed_xp(self, xp):
         from skills import SkillRepository, SkillUpdate
+
         self.xp += xp
 
         xp_gained.send(self, xp=xp)
@@ -53,3 +54,21 @@ class Skill(SQLModel, table=True):
 
 class GoalModel(Goal, table=True):
     skill: Skill | None = Relationship(back_populates="goals")
+
+
+class StatModel(StatBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+
+class SkillModel(SkillBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    main_stat_id: int = Field(foreign_key="statmodel.id")
+    main_stat: StatModel = Relationship(
+        sa_relationship_kwargs=dict(foreign_keys="[SkillModel.main_stat_id]")
+    )
+
+    secondary_stat_id: int | None = Field(default=None, foreign_key="statmodel.id")
+    secondary_stat: StatModel | None = Relationship(
+        sa_relationship_kwargs=dict(foreign_keys="[SkillModel.secondary_stat_id]")
+    )

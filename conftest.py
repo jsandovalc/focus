@@ -24,8 +24,9 @@ def engine():
 
 
 @pytest.fixture(autouse=True)
-def delete_skills():
+def delete_skills(engine):
     with get_session() as session:
         session.exec(delete(models.GoalModel))
         session.exec(delete(models.Skill))
+        session.exec(delete(models.StatModel))
         session.commit()

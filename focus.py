@@ -5,6 +5,8 @@ from goals import Goal, GoalsRepository
 from skills import SkillRepository, SkillUpdate
 from timer import Timer
 from signals import goal_completed
+from repositories import SkillRepository as NewSkillRepository, StatsRepository
+from domain import Skill, Stat
 
 
 class Focus:
@@ -61,6 +63,22 @@ class Focus:
         self.goals: list[Goal] = self.goals_repository.all_goals()
 
         self.goal_added_callbacks: list[Callable[[Goal]]] = []
+
+        self._stats_repository = StatsRepository()
+        self.stats: dict[str, Stat] = {}
+        self.load_stats()
+
+        self._skills_repository = NewSkillRepository()
+        self.new_skills: dict[str, Skill] = {}
+        self.load_skills()
+
+    def load_skills(self):
+        for skill in self._skills_repository.get_all_skills():
+            self.new_skills[skill.name] = skill
+
+    def load_stats(self):
+        for stat in self._stats_repository.get_all_stats():
+            self.stats[stat.name] = stat
 
     @property
     def focusing(self) -> bool:
