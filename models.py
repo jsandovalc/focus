@@ -31,7 +31,7 @@ class Skill(SQLModel, table=True):
 
         self.xp += xp
 
-        xp_gained.send(self, xp=xp)
+        # xp_gained.send(self, xp=xp)
 
         if self.xp >= self.xp_to_next_level:
             self.level += 1
@@ -47,7 +47,7 @@ class Skill(SQLModel, table=True):
                     level=self.level,
                 )
             )
-            level_gained.send(self, xp=extra_xp)
+            # level_gained.send(self, xp=extra_xp)
 
             self.gain_fixed_xp(extra_xp)
 

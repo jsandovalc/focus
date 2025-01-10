@@ -86,24 +86,25 @@ class FocusApp(toga.App):
         xp_gained.connect(self.xp_gained)
 
     def level_gained(self, skill, xp):
-        pass
-        # for skill_data in self._skills_labels:
-        #     shown_skill, _, xp_label = skill_data
-        #     if skill.id == shown_skill.id:
-        #         xp_label.text = (
-        #             f"Current xp: {xp}. Next level: {skill.xp_to_next_level}"
-        #         )
+        box = self.skills[skill.name]
+        box.xp_label.text = f"XP: {skill.xp}"
+        box.next_level_label.text = f"XP to next level: {skill.xp_to_next_level}"
 
-    def xp_gained(self, skill, xp):
+        main_stat_label = self.stats[skill.main_stat.name]
+        main_stat_label.text = (
+            f"{skill.main_stat.name.title()}: {skill.main_stat.value}"
+        )
+
+        if skill.secondary_stat:
+            secondary_stat_label = self.stats[skill.main_stat.name]
+            secondary_stat_label.text = (
+                f"{skill.secondary_stat.name.title()}: {skill.secondary_stat.value}"
+            )
+
+    def xp_gained(self, skill, xp_earned):
         """Update xp label."""
-        pass
-        # for skill_data in self._skills_labels:
-        #     shown_skill, _, xp_label = skill_data
-
-        #     if skill.id == shown_skill.id:
-        #         xp_label.text = (
-        #             f"Current xp: {skill.xp}. Next level: {skill.xp_to_next_level}"
-        #         )
+        box = self.skills[skill.name]
+        box.xp_label.text = f"XP: {skill.xp}"
 
     def goal_added(self, goal: Goal):
         goal_box = self._create_goal_box(goal)
@@ -294,10 +295,12 @@ class FocusApp(toga.App):
         self.skills_selection_box = toga.Box(
             style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
         )
-        skills: list[str] = [skill.name for skill in self.focus_app.skills.values()]
+
+        skills: list[str] = [skill.name.title() for skill in self.focus_app.new_skills.values()]
         self.skill_selection = toga.Selection(
             items=skills, on_change=self.change_selected_skill
         )
+
         self.skill_selection.value = skills[0]
         self.skills_selection_box.add(self.skill_selection)
 
@@ -317,8 +320,8 @@ class FocusApp(toga.App):
         self.timer_box.add(self.earned_break_time_label)
 
     def change_selected_skill(self, widget):
-        if not self.focus_app.set_current_skill(widget.value):
-            widget.value = self.focus_app.current_skill.name
+        if not self.focus_app.set_current_skill(widget.value.lower()):
+            widget.value = self.focus_app.current_skill.name.title()
 
     async def add_goal(self, widget):
         """Show a `Dialog` for input."""
@@ -326,7 +329,6 @@ class FocusApp(toga.App):
         dialog.show()
         result = await dialog
 
-        print("result is", result)
         if result == "Save":
             self.focus_app.add_goal(
                 Goal(
@@ -365,15 +367,6 @@ class FocusApp(toga.App):
         )
         self.total_break_time_label.text = f"Total break time: {duration_from_seconds(self.focus_app.get_total_rested_seconds())}"
         self.start_button.text = "Focus!"
-
-        print(self._skills_labels)
-        for skill, skill_label, xp_label in self._skills_labels:
-            skill = self.focus_app.skills[skill.name]
-            print("Updating label", skill, skill_label, xp_label)
-            skill_label.text = f"{skill.name}: {skill.level}"
-            xp_label.text = (
-                f"Current xp: {skill.xp}. Next level: {skill.xp_to_next_level}"
-            )
 
     async def _update_timers(self):
         """Updates the timer labels every second."""

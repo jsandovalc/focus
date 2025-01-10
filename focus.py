@@ -56,8 +56,6 @@ class Focus:
         self.skills[dex_skill.name] = dex_skill
         self.skills[wil_skill.name] = wil_skill
 
-        self.current_skill = int_skill
-
         self.goals_repository = GoalsRepository()
 
         self.goals: list[Goal] = self.goals_repository.all_goals()
@@ -71,6 +69,13 @@ class Focus:
         self._skills_repository = NewSkillRepository()
         self.new_skills: dict[str, Skill] = {}
         self.load_skills()
+
+        skill = list(self.new_skills.values())[0]
+
+        if not skill:
+            raise ValueError("No skill to set.")
+
+        self.current_skill: Skill = skill
 
     def load_skills(self):
         for skill in self._skills_repository.get_all_skills():
@@ -122,23 +127,15 @@ class Focus:
         if self.resting:
             self.earned_break_time -= self.get_current_clock_time()
         lapse = self.breaks_timer.stop()
-
-        # if lapse:
-        #     self.history.add_entries(lapse)
-
         lapse = self.focused_timer.start()
-        # if lapse:
-        #     self.history.add_entries(lapse)
 
     def set_current_skill(self, name: str) -> bool:
         """:return: True if skill change successfully."""
-        new_skill = self.skills_repository.get_skill_by_name(name)
+        if name in self.new_skills:
+            self.current_skill = self.new_skills[name]
+            return True
 
-        if not new_skill:
-            return False
-
-        self.current_skill = new_skill
-        return True
+        return False
 
     def rest(self):
         """I start a break lapse. I also add the earned break time.
@@ -146,12 +143,21 @@ class Focus:
         Experience must be added to corresponding skill.
 
         """
+        _POMODORO_BLOCK_SIZE = 25 * 60  # seconds
+        _BASE_XP = 10
+        _CAP_XP_AT = 30
+
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
-            self.current_skill.gain_xp(current_clock_time)
+            self.current_skill.add_xp(
+                xp_earned=min(
+                    int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
+                    _CAP_XP_AT,
+                )
+            )
 
-            self.skills_repository.update(
-                SkillUpdate(
+            NewSkillRepository().update_skill(
+                update=SkillUpdate(
                     id=self.current_skill.id,
                     xp=self.current_skill.xp,
                     xp_to_next_level=self.current_skill.xp_to_next_level,

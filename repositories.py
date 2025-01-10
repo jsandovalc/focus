@@ -1,8 +1,16 @@
 from domain import Skill, Stat
-from sqlmodel import Session, select
+from sqlmodel import Session, select, SQLModel
 from db import get_session
 from models import SkillModel, StatModel
 from collections.abc import Iterable
+
+
+class SkillUpdate(SQLModel):
+    id: int
+    name: str | None = None
+    level: int | None = None
+    xp: int | None = None
+    xp_to_next_level: int | None = None
 
 
 class SkillRepository:
@@ -66,6 +74,17 @@ class SkillRepository:
             Skill.model_validate(skill)
             for skill in self.session.exec(select(SkillModel)).all()
         )
+
+    def update_skill(self, *, update: SkillUpdate) -> Skill:
+        skill_to_update = self.session.get(SkillModel, update.id)
+
+        for field, value in skill.model_dump(exclude_unset=True).items():
+            setattr(skill_to_update, field, value)
+
+        self.session.add(skill_to_update)
+        self.session.commit()
+
+        return Skill.model_validate(skill_to_update)
 
 
 class StatsRepository:
