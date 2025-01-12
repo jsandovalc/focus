@@ -21,6 +21,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "ruff>=0.8.2",
     "devtools>=0.12.2",
+    "ipdb>=0.13.13",
 ]
 
 [tool.ruff.lint]

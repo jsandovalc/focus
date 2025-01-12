@@ -4,7 +4,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from enums import Difficulty
 from typing import Callable
 from pydantic import PrivateAttr, AfterValidator
-from signals import xp_gained, level_gained
+from signals import xp_gained, level_gained, goal_completed
 
 
 _NEXT_LEVEL_REQUIRED_XP_FACTOR = 1.5
@@ -41,7 +41,7 @@ class Skill(SkillBase):
                 self.xp_to_next_level * _NEXT_LEVEL_REQUIRED_XP_FACTOR
             )
 
-            # increase related stats
+            # Grant xp to stats.
             self.main_stat.value += _MAIN_STAT_INCREASE
 
             if self.secondary_stat:
@@ -59,11 +59,33 @@ class Stat(StatBase):
     id: int | None = None
 
 
-class Goal(SQLModel):
-    id: int | None = Field(default=None, primary_key=True)
+class GoalBase(SQLModel):
     title: str
     description: str = ""
     difficulty: Difficulty = Difficulty.EASY
     completed: bool = False
 
-    skill_id: int | None = Field(default=None, foreign_key="skill.id")
+
+_EXCHANGE = {
+    Difficulty.EASY: 10,
+    Difficulty.MEDIUM: 100,
+    Difficulty.HARD: 400,
+    Difficulty.PROJECT: 1000,
+}
+
+
+class Goal(GoalBase):
+    id: int | None = None
+
+    main_skill: Skill
+    secondary_skill: Skill | None = None
+
+    def complete(self):
+        self.completed = True
+
+        self.main_skill.add_xp(xp_earned=_EXCHANGE[self.difficulty])
+
+        if self.secondary_skill:
+            self.secondary_skill.add_xp(xp_earned=_EXCHANGE[self.difficulty] // 2)
+
+        goal_completed.send(self)

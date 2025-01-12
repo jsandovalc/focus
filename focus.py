@@ -1,12 +1,16 @@
 from collections.abc import Callable
 
 import db
-from goals import Goal, GoalsRepository
-from skills import SkillRepository, SkillUpdate
 from timer import Timer
 from signals import goal_completed
-from repositories import SkillRepository as NewSkillRepository, StatsRepository
-from domain import Skill, Stat
+from repositories import (
+    SkillRepository as NewSkillRepository,
+    StatsRepository,
+    GoalsRepository,
+    GoalUpdate,
+    SkillUpdate,
+)
+from domain import Skill, Stat, Goal
 
 
 class Focus:
@@ -29,39 +33,6 @@ class Focus:
         self.earned_break_time: int = 0
         self.focus_break_ratio = 3
 
-        # self.history = History(self.db_name)
-
-        self.skills = {}
-
-        self.skills_repository = SkillRepository()
-
-        int_skill = self.skills_repository.get_skill_by_name("Intelligence")
-        if not int_skill:
-            int_skill = self.skills_repository.create(name="Intelligence")
-
-        vit_skill = self.skills_repository.get_skill_by_name("Vitality")
-        if not vit_skill:
-            vit_skill = self.skills_repository.create(name="Vitality")
-
-        dex_skill = self.skills_repository.get_skill_by_name("Dexterity")
-        if not dex_skill:
-            dex_skill = self.skills_repository.create(name="Dexterity")
-
-        wil_skill = self.skills_repository.get_skill_by_name("Willpower")
-        if not wil_skill:
-            wil_skill = self.skills_repository.create(name="Willpower")
-
-        self.skills[int_skill.name] = int_skill
-        self.skills[vit_skill.name] = vit_skill
-        self.skills[dex_skill.name] = dex_skill
-        self.skills[wil_skill.name] = wil_skill
-
-        self.goals_repository = GoalsRepository()
-
-        self.goals: list[Goal] = self.goals_repository.all_goals()
-
-        self.goal_added_callbacks: list[Callable[[Goal]]] = []
-
         self._stats_repository = StatsRepository()
         self.stats: dict[str, Stat] = {}
         self.load_stats()
@@ -70,12 +41,22 @@ class Focus:
         self.new_skills: dict[str, Skill] = {}
         self.load_skills()
 
-        skill = list(self.new_skills.values())[0]
+        skills = list(self.new_skills.values())
 
-        if not skill:
-            raise ValueError("No skill to set.")
+        skill = None
+        if skills:
+            skill = skills[0]
 
-        self.current_skill: Skill = skill
+        self.current_skill: Skill | None = skill
+
+        self._goals_repository = GoalsRepository()
+
+        self.goals: dict[int, Goal] = {}
+        self.load_goals()
+
+    def load_goals(self):
+        for goal in self._goals_repository.get_all_goals():
+            self.goals[goal.id] = goal
 
     def load_skills(self):
         for skill in self._skills_repository.get_all_skills():
@@ -102,23 +83,20 @@ class Focus:
         return self.focused_timer.paused or self.breaks_timer.paused
 
     def add_goal(self, goal: Goal):
-        self.goals.append(goal)
+        new_goal = GoalsRepository().create_goal(goal)
 
-        self.goals_repository.add_goal(goal)
-
-        for callback in self.goal_added_callbacks:
-            callback(goal)
+        self.goals[new_goal.id] = new_goal
 
     def complete_goal(self, goal_id: int) -> bool:
         """`False` means goal was already completed. No callbacks were run."""
-        goal = self.goals_repository.get_goal_by_id(goal_id)
+        goal = GoalsRepository().get_goal_by_id(goal_id)
 
         if goal.completed:
             return False
 
-        goal = self.goals_repository.complete_goal(goal_id)
+        goal.complete()
 
-        goal_completed.send(goal)
+        GoalsRepository().update_goal(GoalUpdate(id=goal.id, completed=goal.completed))
 
         return True
 

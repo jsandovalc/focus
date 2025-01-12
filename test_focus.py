@@ -5,10 +5,12 @@ import pytest
 
 from enums import Difficulty
 from focus import Focus
-from goals import Goal, GoalsRepository
-from skills import SkillRepository
-from repositories import SkillRepository as NewSkillRepository, StatsRepository
-from domain import Skill, Stat
+from repositories import (
+    SkillRepository as NewSkillRepository,
+    StatsRepository,
+    GoalsRepository,
+)
+from domain import Skill, Stat, Goal
 from signals import goal_completed
 from db import get_session
 from sqlmodel import delete
@@ -194,3 +196,29 @@ def test_stats_loaded_from_database():
     app = Focus()
 
     assert len(app.stats) == 2
+
+
+def test_load_goals_from_database():
+    goals_repository = GoalsRepository()
+    goals_repository.create_goal(
+        Goal(
+            title="Test",
+            main_skill=Skill(name="test-skill", main_stat=Stat(name="main-stat")),
+            secondary_skill=Skill(
+                name="test-skill-2", main_stat=Stat(name="main-stat-2")
+            ),
+        )
+    )
+    goals_repository.create_goal(
+        Goal(
+            title="Test2",
+            main_skill=Skill(name="test-skill-3", main_stat=Stat(name="main-stat-3")),
+            secondary_skill=Skill(
+                name="test-skill-4", main_stat=Stat(name="main-stat-4")
+            ),
+        )
+    )
+
+    app = Focus()
+
+    assert len(app.goals) == 2

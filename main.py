@@ -16,10 +16,10 @@ from toga.style.pack import CENTER, COLUMN, ROW, Pack, LEFT
 
 from focus import Focus
 from timer import duration_from_seconds
-from models import Goal
+from domain import Goal
 from enums import Difficulty
 from functools import partialmethod
-from signals import level_gained, xp_gained
+from signals import level_gained, xp_gained, goal_completed
 
 
 class NewGoalDialog(toga.Window):
@@ -46,7 +46,7 @@ class NewGoalDialog(toga.Window):
         )
         skill_label = toga.Label("Skill:", style=Pack(padding=(0, 5)))
         self.skill_selection = toga.Selection(
-            items=[skill.name for skill in focus_app.skills.values()],
+            items=[skill.name for skill in focus_app.new_skills.values()],
             style=common_style,
         )
 
@@ -80,7 +80,6 @@ class FocusApp(toga.App):
         super().__init__(name, *args, **kwargs)
         self.focus_app = Focus()
         self._counting_task: asyncio.Task | None = None
-        self.focus_app.goal_added_callbacks.append(self.goal_added)
 
         level_gained.connect(self.level_gained)
         xp_gained.connect(self.xp_gained)
@@ -103,6 +102,7 @@ class FocusApp(toga.App):
 
     def xp_gained(self, skill, xp_earned):
         """Update xp label."""
+        box = self.skills[skill.name]
         box = self.skills[skill.name]
         box.xp_label.text = f"XP: {skill.xp}"
 
@@ -210,7 +210,10 @@ class FocusApp(toga.App):
         self.goals_box.add(button_box)
         self.goals_box.add(toga.Divider())
 
-        for goal in self.focus_app.goals:
+        for goal in self.focus_app.goals.values():
+            if goal.completed:
+                continue
+
             goal_box = self._create_goal_box(goal)
             self.goals_box.add(goal_box)
 
@@ -229,7 +232,7 @@ class FocusApp(toga.App):
 
         goal_box.add(dif_label)
 
-        skill = self.focus_app.skills_repository.get_skill_by_id(goal.skill_id)
+        skill = self.focus_app.new_skills[goal.main_skill.name]
 
         skill_label = toga.Label(
             skill.name,
@@ -239,6 +242,7 @@ class FocusApp(toga.App):
         goal_box.add(skill_label)
 
         def _goal_completed(widget):
+            self.focus_app.complete_goal(goal.id)
             self.goal_completed(goal, label, widget)
             widget.enabled = False
             label.enabled = False
@@ -296,7 +300,9 @@ class FocusApp(toga.App):
             style=Pack(direction=COLUMN, alignment=CENTER, padding=10)
         )
 
-        skills: list[str] = [skill.name.title() for skill in self.focus_app.new_skills.values()]
+        skills: list[str] = [
+            skill.name.title() for skill in self.focus_app.new_skills.values()
+        ]
         self.skill_selection = toga.Selection(
             items=skills, on_change=self.change_selected_skill
         )
@@ -335,7 +341,7 @@ class FocusApp(toga.App):
                     title=dialog.title_input.value,
                     description=dialog.description_input.value,
                     difficulty=dialog.difficulty_selection.value,
-                    skill_id=self.focus_app.skills[dialog.skill_selection.value].id,
+                    main_skill=self.focus_app.new_skills[dialog.skill_selection.value],
                 )
             )
 
