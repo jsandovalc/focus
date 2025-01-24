@@ -1,16 +1,17 @@
-from collections.abc import Callable
 
 import db
-from timer import Timer
-from signals import goal_completed
+from domain import Goal, Skill, Stat
 from repositories import (
-    SkillRepository as NewSkillRepository,
-    StatsRepository,
     GoalsRepository,
     GoalUpdate,
     SkillUpdate,
+    StatsRepository,
 )
-from domain import Skill, Stat, Goal
+from repositories import (
+    SkillRepository as NewSkillRepository,
+)
+from signals import goal_added
+from timer import Timer
 
 
 class Focus:
@@ -87,16 +88,38 @@ class Focus:
 
         self.goals[new_goal.id] = new_goal
 
+        goal_added.send(goal)
+
     def complete_goal(self, goal_id: int) -> bool:
         """`False` means goal was already completed. No callbacks were run."""
-        goal = GoalsRepository().get_goal_by_id(goal_id)
+        goals_repository = GoalsRepository()
+        goal = goals_repository.get_goal_by_id(goal_id)
 
         if goal.completed:
             return False
 
         goal.complete()
 
-        GoalsRepository().update_goal(GoalUpdate(id=goal.id, completed=goal.completed))
+        goals_repository.update_goal(
+            GoalUpdate(
+                id=goal.id,
+                completed=goal.completed,
+                main_skill=SkillUpdate(
+                    id=goal.main_skill.id,
+                    level=goal.main_skill.level,
+                    xp=goal.main_skill.xp,
+                    xp_to_next_level=goal.main_skill.xp_to_next_level,
+                ),
+                secondary_skill=SkillUpdate(
+                    id=goal.secondary_skill.id,
+                    level=goal.secondary_skill.level,
+                    xp=goal.secondary_skill.xp,
+                    xp_to_next_level=goal.secondary_skill.xp_to_next_level,
+                )
+                if goal.secondary_skill
+                else None,
+            )
+        )
 
         return True
 
@@ -127,13 +150,14 @@ class Focus:
 
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
+            print("Adding xp to ", self.current_skill)
             self.current_skill.add_xp(
                 xp_earned=min(
                     int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
                     _CAP_XP_AT,
                 )
             )
-
+            print("Xp added, updating skill in database")
             NewSkillRepository().update_skill(
                 update=SkillUpdate(
                     id=self.current_skill.id,
@@ -142,7 +166,7 @@ class Focus:
                     level=self.current_skill.level,
                 )
             )
-
+            print("XP added and current skill stored")
             self.earned_break_time += current_clock_time // self.focus_break_ratio
 
         self.focused_timer.stop()

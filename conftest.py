@@ -1,10 +1,10 @@
 import pytest
 from sqlmodel import Session, SQLModel, create_engine, delete
 from sqlmodel.pool import StaticPool
-from db import get_session
-import models
 
 import db
+import models
+from db import get_session
 
 
 @pytest.fixture(scope="session", autouse=True)

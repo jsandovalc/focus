@@ -1,7 +1,8 @@
-from skills import SkillRepository, SkillUpdate
-from signals import level_gained, xp_gained
 from domain import Skill, Stat
-from repositories import SkillRepository as NewSkillRepository, StatsRepository
+from repositories import SkillRepository as NewSkillRepository
+from repositories import StatsRepository
+from signals import level_gained, xp_gained
+from skills import SkillRepository, SkillUpdate
 
 
 def test_store_load_skill():

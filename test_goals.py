@@ -1,6 +1,6 @@
+from domain import Goal, Skill, Stat
 from goals import Difficulty, GoalsRepository
 from skills import SkillRepository
-from domain import Goal, Skill, Stat
 
 
 def test_create_a_goal():

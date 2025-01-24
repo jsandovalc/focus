@@ -1,8 +1,10 @@
-from domain import Skill, Stat, Goal
-from sqlmodel import Session, select, SQLModel
-from db import get_session
-from models import StatModel, SkillModel, GoalModel
 from collections.abc import Iterable
+
+from sqlmodel import Session, SQLModel, select
+
+from db import get_session
+from domain import Goal, Skill, Stat
+from models import GoalModel, SkillModel, StatModel
 
 
 class SkillUpdate(SQLModel):
@@ -16,6 +18,8 @@ class SkillUpdate(SQLModel):
 class GoalUpdate(SQLModel):
     id: int
     completed: bool | None = None
+    main_skill: SkillUpdate | None = None
+    secondary_skill: SkillUpdate | None = None
 
 
 class BaseRepository:
@@ -187,10 +191,17 @@ class GoalsRepository(BaseRepository):
     def update_goal(self, update: GoalUpdate) -> Goal:
         goal_to_update = self.session.get(GoalModel, update.id)
 
+        ignore = {"main_skill", "secondary_skill"}
         for field, value in update.model_dump(exclude_unset=True).items():
+            if field in ignore:
+                continue
             setattr(goal_to_update, field, value)
 
         self.session.add(goal_to_update)
+        if update.main_skill is not None:
+            SkillRepository(session=self.session).update_skill(update=update.main_skill)
+        if update.secondary_skill is not None:
+            SkillRepository(session=self.session).update_skill(update=update.secondary_skill)
         self.session.commit()
 
         return Goal.model_validate(goal_to_update)

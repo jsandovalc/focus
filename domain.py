@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Annotated
-from sqlmodel import SQLModel, Field, Relationship
-from enums import Difficulty
-from typing import Callable
-from pydantic import PrivateAttr, AfterValidator
-from signals import xp_gained, level_gained, goal_completed
 
+from typing import Annotated
+
+from pydantic import AfterValidator
+from sqlmodel import Field, SQLModel
+
+from enums import Difficulty
+from signals import goal_completed, level_gained, xp_gained
 
 _NEXT_LEVEL_REQUIRED_XP_FACTOR = 1.5
 _MAIN_STAT_INCREASE = 2
@@ -32,6 +33,7 @@ class Skill(SkillBase):
     def add_xp(self, *, xp_earned: int):
         self.xp += xp_earned
 
+        print("calling event for exp gaining", self, xp_earned)
         xp_gained.send(self, xp_earned=xp_earned)
 
         while self.xp >= self.xp_to_next_level:

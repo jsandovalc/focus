@@ -1,9 +1,7 @@
-from sqlmodel import Field, Relationship, SQLModel
-from typing import Callable
-from enums import Difficulty
-from pydantic import PrivateAttr
-from domain import SkillBase, StatBase, GoalBase
-from signals import level_gained, xp_gained
+
+from sqlmodel import Field, Relationship
+
+from domain import GoalBase, SkillBase, StatBase
 
 
 class StatModel(StatBase, table=True):

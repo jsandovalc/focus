@@ -1,21 +1,16 @@
 import datetime as dt
-import sqlite3
 
-import pytest
-
+from domain import Goal, Skill, Stat
 from enums import Difficulty
 from focus import Focus
 from repositories import (
-    SkillRepository as NewSkillRepository,
-    StatsRepository,
     GoalsRepository,
+    StatsRepository,
 )
-from domain import Skill, Stat, Goal
+from repositories import (
+    SkillRepository as NewSkillRepository,
+)
 from signals import goal_completed
-from db import get_session
-from sqlmodel import delete
-import models
-import skills
 
 
 def test_get_experience_on_rest(freezer):

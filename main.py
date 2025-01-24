@@ -9,17 +9,18 @@ Rest!
 """
 
 import asyncio
+import os
+import platform
 from dataclasses import dataclass
 
 import toga
-from toga.style.pack import CENTER, COLUMN, ROW, Pack, LEFT
+from toga.style.pack import CENTER, COLUMN, ROW, Pack
 
-from focus import Focus
-from timer import duration_from_seconds
 from domain import Goal
 from enums import Difficulty
-from functools import partialmethod
-from signals import level_gained, xp_gained, goal_completed
+from focus import Focus
+from signals import goal_added, level_gained, xp_gained
+from timer import duration_from_seconds
 
 
 class NewGoalDialog(toga.Window):
@@ -83,10 +84,14 @@ class FocusApp(toga.App):
 
         level_gained.connect(self.level_gained)
         xp_gained.connect(self.xp_gained)
+        goal_added.connect(self.goal_added)
 
-    def level_gained(self, skill, xp):
+        self.notified = False
+        "Notify when break time runs out. Only once."
+
+    def level_gained(self, skill):
         box = self.skills[skill.name]
-        box.xp_label.text = f"XP: {skill.xp}"
+        box.xp_label.text = f"XP: {skill.xp} "
         box.next_level_label.text = f"XP to next level: {skill.xp_to_next_level}"
 
         main_stat_label = self.stats[skill.main_stat.name]
@@ -102,9 +107,10 @@ class FocusApp(toga.App):
 
     def xp_gained(self, skill, xp_earned):
         """Update xp label."""
+        print("Updating xp label", skill.name, xp_earned, skill)
         box = self.skills[skill.name]
         box = self.skills[skill.name]
-        box.xp_label.text = f"XP: {skill.xp}"
+        box.xp_label.text = f"XP: {skill.xp} "
 
     def goal_added(self, goal: Goal):
         goal_box = self._create_goal_box(goal)
@@ -362,6 +368,7 @@ class FocusApp(toga.App):
             if self.focus_app.earned_break_time < 0:
                 self.timer_label.style.color = "red"
         else:
+            self.notified = False
             self._enter_break()
 
     def _enter_break(self):
@@ -404,6 +411,9 @@ class FocusApp(toga.App):
             if (self.focus_app.earned_break_time - current_break_time) < 0:
                 if self.focus_app.resting:
                     self.timer_label.style.color = "red"
+                    if not self.notified and platform.system() == "Linux":
+                        self.notified = True
+                        os.system('/usr/bin/notify-send "Run out of break time"')
                 else:
                     self.timer_label.style.color = "black"
                 self.total_break_time_label.color = "red"
