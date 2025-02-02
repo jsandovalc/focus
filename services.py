@@ -1,15 +1,12 @@
-from domain import Skill, Goal
+from domain import Goal, Skill
 from repositories import (
+    GoalsRepository,
+    GoalUpdate,
     SkillRepository,
     SkillUpdate,
     StatsRepository,
     StatUpdate,
-    GoalsRepository,
-    GoalUpdate,
 )
-from sqlmodel import Session
-
-from db import get_session
 
 
 class SkillsService:
@@ -48,5 +45,7 @@ class GoalsService:
         goal.complete()
 
         repository.update_goal(
-            GoalUpdate(completed=goal.completed, main_skill=goal.main_skill)
+            GoalUpdate(id=goal.id, completed=goal.completed, main_skill=goal.main_skill)
         )
+
+        return repository.get_goal_by_id(goal_id)

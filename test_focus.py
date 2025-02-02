@@ -1,16 +1,9 @@
-import datetime as dt
-
 from domain import Goal, Skill, Stat
-from enums import Difficulty
 from focus import Focus
 from repositories import (
     GoalsRepository,
     StatsRepository,
 )
-from repositories import (
-    SkillRepository as NewSkillRepository,
-)
-from signals import goal_completed
 
 
 def test_stats_loaded_from_database():

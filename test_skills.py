@@ -2,7 +2,6 @@ from domain import Skill, Stat
 from repositories import SkillRepository as NewSkillRepository
 from repositories import StatsRepository
 from signals import level_gained, xp_gained
-from repositories import SkillUpdate
 
 
 def test_add_xp():

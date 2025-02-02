@@ -12,6 +12,7 @@ import asyncio
 import os
 import platform
 from dataclasses import dataclass
+from services import GoalsService
 
 import toga
 from toga.style.pack import CENTER, COLUMN, ROW, Pack
@@ -124,7 +125,7 @@ class FocusApp(toga.App):
             widget.value = True
             return
 
-        self.focus_app.complete_goal(goal.id)
+        GoalsService().complete_goal(goal.id)
 
     def startup(self) -> None:
         self.main_window = toga.Window()

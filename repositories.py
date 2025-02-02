@@ -19,6 +19,9 @@ class SkillUpdate(SQLModel):
     xp: int | None = None
     xp_to_next_level: int | None = None
 
+    main_stat: StatUpdate | None = None
+    secondary_stat: StatUpdate | None = None
+
 
 class GoalUpdate(SQLModel):
     id: int
@@ -105,10 +108,22 @@ class SkillRepository(BaseRepository):
     def update_skill(self, *, update: SkillUpdate) -> Skill:
         skill_to_update = self.session.get(SkillModel, update.id)
 
+        ignore = {"main_stat", "secondary_stat"}
         for field, value in update.model_dump(exclude_unset=True).items():
+            if field in ignore:
+                continue
             setattr(skill_to_update, field, value)
 
         self.session.add(skill_to_update)
+        if update.main_stat is not None:
+            StatsRepository(session=self.session).update_stat(
+                update=StatUpdate.model_validate(update.main_stat)
+            )
+        if update.secondary_stat is not None:
+            StatsRepository(session=self.session).update_stat(
+                update=StatUpdate.model_validate(update.secondary_stat)
+            )
+
         self.session.commit()
 
         return Skill.model_validate(skill_to_update)
@@ -223,10 +238,12 @@ class GoalsRepository(BaseRepository):
 
         self.session.add(goal_to_update)
         if update.main_skill is not None:
-            SkillRepository(session=self.session).update_skill(update=update.main_skill)
+            SkillRepository(session=self.session).update_skill(
+                update=SkillUpdate.model_validate(update.main_skill)
+            )
         if update.secondary_skill is not None:
             SkillRepository(session=self.session).update_skill(
-                update=update.secondary_skill
+                update=SkillUpdate.model_validate(update.secondary_skill)
             )
         self.session.commit()
 

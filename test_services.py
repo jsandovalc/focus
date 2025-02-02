@@ -1,6 +1,6 @@
 from services import SkillsService, GoalsService
 from repositories import SkillRepository, GoalsRepository
-from domain import Stat, Skill, Goal
+from domain import Stat, Skill, Goal, Difficulty
 
 
 def test_increase_level():
@@ -40,7 +40,9 @@ def test_complete_goal():
         )
     )
 
-    goal = Goal(title="Pass this test", main_skill=main_skill)
+    goal = Goal(
+        title="Pass this test", main_skill=main_skill, difficulty=Difficulty.MEDIUM
+    )
 
     repository = GoalsRepository()
     goal = repository.create_goal(goal)

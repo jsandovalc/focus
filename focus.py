@@ -11,6 +11,7 @@ from repositories import (
 )
 from signals import goal_added
 from timer import Timer
+from services import SkillsService
 
 
 class Focus:
@@ -149,23 +150,14 @@ class Focus:
 
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
-            print("Adding xp to ", self.current_skill)
-            self.current_skill.add_xp(
-                xp_earned=min(
+            SkillsService().add_xp(
+                min(
                     int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
                     _CAP_XP_AT,
-                )
+                ),
+                skill_id=self.current_skill.id,
             )
-            print("Xp added, updating skill in database")
-            NewSkillRepository().update_skill(
-                update=SkillUpdate(
-                    id=self.current_skill.id,
-                    xp=self.current_skill.xp,
-                    xp_to_next_level=self.current_skill.xp_to_next_level,
-                    level=self.current_skill.level,
-                )
-            )
-            print("XP added and current skill stored")
+
             self.earned_break_time += current_clock_time // self.focus_break_ratio
 
         self.focused_timer.stop()
