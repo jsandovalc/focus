@@ -7,6 +7,11 @@ from domain import Goal, Skill, Stat
 from models import GoalModel, SkillModel, StatModel
 
 
+class StatUpdate(SQLModel):
+    id: int
+    value: int | None = None
+
+
 class SkillUpdate(SQLModel):
     id: int
     name: str | None = None
@@ -82,6 +87,14 @@ class SkillRepository(BaseRepository):
 
         return None
 
+    def get_skill_by_id(self, id: int) -> Skill | None:
+        skill = self.session.exec(select(SkillModel).where(SkillModel.id == id)).first()
+
+        if skill:
+            return Skill.model_validate(skill)
+
+        return None
+
     def get_all_skills(self) -> Iterable[Skill]:
         """Return all skills."""
         return (
@@ -130,6 +143,17 @@ class StatsRepository(BaseRepository):
             Stat.model_validate(stat)
             for stat in self.session.exec(select(StatModel)).all()
         )
+
+    def update_stat(self, *, update: StatUpdate) -> Stat:
+        stat_to_update = self.session.get(StatModel, update.id)
+
+        for field, value in update.model_dump(exclude_unset=True).items():
+            setattr(stat_to_update, field, value)
+
+        self.session.add(stat_to_update)
+        self.session.commit()
+
+        return Stat.model_validate(stat_to_update)
 
 
 class GoalsRepository(BaseRepository):
@@ -201,7 +225,9 @@ class GoalsRepository(BaseRepository):
         if update.main_skill is not None:
             SkillRepository(session=self.session).update_skill(update=update.main_skill)
         if update.secondary_skill is not None:
-            SkillRepository(session=self.session).update_skill(update=update.secondary_skill)
+            SkillRepository(session=self.session).update_skill(
+                update=update.secondary_skill
+            )
         self.session.commit()
 
         return Goal.model_validate(goal_to_update)

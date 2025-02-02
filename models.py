@@ -1,4 +1,3 @@
-
 from sqlmodel import Field, Relationship
 
 from domain import GoalBase, SkillBase, StatBase

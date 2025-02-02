@@ -1,4 +1,3 @@
-
 import db
 from domain import Goal, Skill, Stat
 from repositories import (
