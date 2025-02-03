@@ -150,7 +150,7 @@ class Focus:
 
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
-            SkillsService().add_xp(
+            SkillsService().grant_xp(
                 min(
                     int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
                     _CAP_XP_AT,
