@@ -414,7 +414,7 @@ class FocusApp(toga.App):
                     self.timer_label.style.color = "red"
                     if not self.notified and platform.system() == "Linux":
                         self.notified = True
-                        os.system('/usr/bin/notify-send "Run out of break time"')
+                        os.system('/usr/bin/notify-send -t 2000 "Run out of break time"')
                 else:
                     self.timer_label.style.color = "black"
                 self.total_break_time_label.color = "red"

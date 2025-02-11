@@ -32,7 +32,7 @@ class Focus:
         self.breaks_timer = Timer()
 
         self.earned_break_time: int = 0
-        self.focus_break_ratio = 3
+        self.focus_break_ratio = 5
 
         self._stats_repository = StatsRepository()
         self.stats: dict[str, Stat] = {}
@@ -106,15 +106,21 @@ class Focus:
                 completed=goal.completed,
                 main_skill=SkillUpdate(
                     id=goal.main_skill.id,
+                    name=goal.main_skill.name,
                     level=goal.main_skill.level,
                     xp=goal.main_skill.xp,
                     xp_to_next_level=goal.main_skill.xp_to_next_level,
+                    main_stat=goal.main_skill.main_stat,
+                    secondary_stat=goal.main_skill.secondary_stat,
                 ),
                 secondary_skill=SkillUpdate(
                     id=goal.secondary_skill.id,
+                    name=goal.secondary_skill.name,
                     level=goal.secondary_skill.level,
                     xp=goal.secondary_skill.xp,
                     xp_to_next_level=goal.secondary_skill.xp_to_next_level,
+                    main_stat=goal.secondary_skill.main_stat,
+                    secondary_stat=goal.secondary_skill.secondary_stat,
                 )
                 if goal.secondary_skill
                 else None,
