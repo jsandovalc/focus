@@ -12,6 +12,7 @@ import asyncio
 import os
 import platform
 from dataclasses import dataclass
+from services import GoalsService
 
 import toga
 from toga.style.pack import CENTER, COLUMN, ROW, Pack
@@ -124,7 +125,7 @@ class FocusApp(toga.App):
             widget.value = True
             return
 
-        self.focus_app.complete_goal(goal.id)
+        GoalsService().complete_goal(goal.id)
 
     def startup(self) -> None:
         self.main_window = toga.Window()
@@ -413,7 +414,7 @@ class FocusApp(toga.App):
                     self.timer_label.style.color = "red"
                     if not self.notified and platform.system() == "Linux":
                         self.notified = True
-                        os.system('/usr/bin/notify-send "Run out of break time"')
+                        os.system('/usr/bin/notify-send -t 2000 "Run out of break time"')
                 else:
                     self.timer_label.style.color = "black"
                 self.total_break_time_label.color = "red"

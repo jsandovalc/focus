@@ -33,7 +33,6 @@ class Skill(SkillBase):
     def add_xp(self, *, xp_earned: int):
         self.xp += xp_earned
 
-        print("calling event for exp gaining", self, xp_earned)
         xp_gained.send(self, xp_earned=xp_earned)
 
         while self.xp >= self.xp_to_next_level:

@@ -1,4 +1,3 @@
-
 import db
 from domain import Goal, Skill, Stat
 from repositories import (
@@ -12,6 +11,9 @@ from repositories import (
 )
 from signals import goal_added
 from timer import Timer
+from services import SkillsService
+import conf
+
 
 
 class Focus:
@@ -32,7 +34,7 @@ class Focus:
         self.breaks_timer = Timer()
 
         self.earned_break_time: int = 0
-        self.focus_break_ratio = 3
+        self.focus_break_ratio = conf.BREAK_RATIO
 
         self._stats_repository = StatsRepository()
         self.stats: dict[str, Stat] = {}
@@ -106,15 +108,21 @@ class Focus:
                 completed=goal.completed,
                 main_skill=SkillUpdate(
                     id=goal.main_skill.id,
+                    name=goal.main_skill.name,
                     level=goal.main_skill.level,
                     xp=goal.main_skill.xp,
                     xp_to_next_level=goal.main_skill.xp_to_next_level,
+                    main_stat=goal.main_skill.main_stat,
+                    secondary_stat=goal.main_skill.secondary_stat,
                 ),
                 secondary_skill=SkillUpdate(
                     id=goal.secondary_skill.id,
+                    name=goal.secondary_skill.name,
                     level=goal.secondary_skill.level,
                     xp=goal.secondary_skill.xp,
                     xp_to_next_level=goal.secondary_skill.xp_to_next_level,
+                    main_stat=goal.secondary_skill.main_stat,
+                    secondary_stat=goal.secondary_skill.secondary_stat,
                 )
                 if goal.secondary_skill
                 else None,
@@ -144,29 +152,16 @@ class Focus:
         Experience must be added to corresponding skill.
 
         """
-        _POMODORO_BLOCK_SIZE = 25 * 60  # seconds
-        _BASE_XP = 10
-        _CAP_XP_AT = 30
-
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
-            print("Adding xp to ", self.current_skill)
-            self.current_skill.add_xp(
-                xp_earned=min(
-                    int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
-                    _CAP_XP_AT,
-                )
+            SkillsService().grant_xp(
+                min(
+                    int(conf.BASE_XP * current_clock_time // conf.POMODORO_BLOCK_SIZE),
+                    conf.CAP_XP_AT,
+                ),
+                skill_id=self.current_skill.id,
             )
-            print("Xp added, updating skill in database")
-            NewSkillRepository().update_skill(
-                update=SkillUpdate(
-                    id=self.current_skill.id,
-                    xp=self.current_skill.xp,
-                    xp_to_next_level=self.current_skill.xp_to_next_level,
-                    level=self.current_skill.level,
-                )
-            )
-            print("XP added and current skill stored")
+
             self.earned_break_time += current_clock_time // self.focus_break_ratio
 
         self.focused_timer.stop()

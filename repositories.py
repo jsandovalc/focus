@@ -7,12 +7,20 @@ from domain import Goal, Skill, Stat
 from models import GoalModel, SkillModel, StatModel
 
 
+class StatUpdate(SQLModel):
+    id: int
+    value: int | None = None
+
+
 class SkillUpdate(SQLModel):
     id: int
     name: str | None = None
     level: int | None = None
     xp: int | None = None
     xp_to_next_level: int | None = None
+
+    main_stat: StatUpdate | None = None
+    secondary_stat: StatUpdate | None = None
 
 
 class GoalUpdate(SQLModel):
@@ -82,6 +90,14 @@ class SkillRepository(BaseRepository):
 
         return None
 
+    def get_skill_by_id(self, id: int) -> Skill | None:
+        skill = self.session.exec(select(SkillModel).where(SkillModel.id == id)).first()
+
+        if skill:
+            return Skill.model_validate(skill)
+
+        return None
+
     def get_all_skills(self) -> Iterable[Skill]:
         """Return all skills."""
         return (
@@ -92,10 +108,22 @@ class SkillRepository(BaseRepository):
     def update_skill(self, *, update: SkillUpdate) -> Skill:
         skill_to_update = self.session.get(SkillModel, update.id)
 
+        ignore = {"main_stat", "secondary_stat"}
         for field, value in update.model_dump(exclude_unset=True).items():
+            if field in ignore:
+                continue
             setattr(skill_to_update, field, value)
 
         self.session.add(skill_to_update)
+        if update.main_stat is not None:
+            StatsRepository(session=self.session).update_stat(
+                update=StatUpdate.model_validate(update.main_stat)
+            )
+        if update.secondary_stat is not None:
+            StatsRepository(session=self.session).update_stat(
+                update=StatUpdate.model_validate(update.secondary_stat)
+            )
+
         self.session.commit()
 
         return Skill.model_validate(skill_to_update)
@@ -130,6 +158,17 @@ class StatsRepository(BaseRepository):
             Stat.model_validate(stat)
             for stat in self.session.exec(select(StatModel)).all()
         )
+
+    def update_stat(self, *, update: StatUpdate) -> Stat:
+        stat_to_update = self.session.get(StatModel, update.id)
+
+        for field, value in update.model_dump(exclude_unset=True).items():
+            setattr(stat_to_update, field, value)
+
+        self.session.add(stat_to_update)
+        self.session.commit()
+
+        return Stat.model_validate(stat_to_update)
 
 
 class GoalsRepository(BaseRepository):
@@ -199,9 +238,13 @@ class GoalsRepository(BaseRepository):
 
         self.session.add(goal_to_update)
         if update.main_skill is not None:
-            SkillRepository(session=self.session).update_skill(update=update.main_skill)
+            SkillRepository(session=self.session).update_skill(
+                update=SkillUpdate.model_validate(update.main_skill)
+            )
         if update.secondary_skill is not None:
-            SkillRepository(session=self.session).update_skill(update=update.secondary_skill)
+            SkillRepository(session=self.session).update_skill(
+                update=SkillUpdate.model_validate(update.secondary_skill)
+            )
         self.session.commit()
 
         return Goal.model_validate(goal_to_update)

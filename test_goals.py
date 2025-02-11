@@ -1,6 +1,4 @@
 from domain import Goal, Skill, Stat
-from enums import Difficulty
-from repositories import GoalsRepository, SkillRepository
 
 
 def test_goal_complete():
