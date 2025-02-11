@@ -12,6 +12,8 @@ from repositories import (
 from signals import goal_added
 from timer import Timer
 from services import SkillsService
+import conf
+
 
 
 class Focus:
@@ -32,7 +34,7 @@ class Focus:
         self.breaks_timer = Timer()
 
         self.earned_break_time: int = 0
-        self.focus_break_ratio = 5
+        self.focus_break_ratio = conf.BREAK_RATIO
 
         self._stats_repository = StatsRepository()
         self.stats: dict[str, Stat] = {}
@@ -150,16 +152,12 @@ class Focus:
         Experience must be added to corresponding skill.
 
         """
-        _POMODORO_BLOCK_SIZE = 25 * 60  # seconds
-        _BASE_XP = 10
-        _CAP_XP_AT = 30
-
         if self.focusing:
             current_clock_time = self.get_current_clock_time()
             SkillsService().grant_xp(
                 min(
-                    int(_BASE_XP * current_clock_time // _POMODORO_BLOCK_SIZE),
-                    _CAP_XP_AT,
+                    int(conf.BASE_XP * current_clock_time // conf.POMODORO_BLOCK_SIZE),
+                    conf.CAP_XP_AT,
                 ),
                 skill_id=self.current_skill.id,
             )
