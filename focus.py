@@ -1,3 +1,4 @@
+import conf
 import db
 from domain import Goal, Skill, Stat
 from repositories import (
@@ -9,11 +10,9 @@ from repositories import (
 from repositories import (
     SkillRepository as NewSkillRepository,
 )
+from services import SkillsService
 from signals import goal_added
 from timer import Timer
-from services import SkillsService
-import conf
-
 
 
 class Focus:
@@ -92,6 +91,17 @@ class Focus:
 
         goal_added.send(goal)
 
+    def add_skill(
+        self, name: str, main_stat_name: str, secondary_stat_name: str | None
+    ):
+        new_skill = SkillsService().create_skill(
+            name, main_stat_name, secondary_stat_name
+        )
+        self.new_skills[new_skill.name] = new_skill
+
+        if not self.current_skill:
+            self.current_skill = new_skill
+
     def complete_goal(self, goal_id: int) -> bool:
         """`False` means goal was already completed. No callbacks were run."""
         goals_repository = GoalsRepository()
@@ -135,8 +145,11 @@ class Focus:
         """I start a focus session."""
         if self.resting:
             self.earned_break_time -= self.get_current_clock_time()
-        lapse = self.breaks_timer.stop()
-        lapse = self.focused_timer.start()
+        self.breaks_timer.stop()
+        # Ensure earned_break_time is not negative and doesn't "reset" to a previous value
+        if self.earned_break_time < 0:  # If it went negative, it means it was depleted
+            self.earned_break_time = 0
+        self.focused_timer.start()
 
     def set_current_skill(self, name: str) -> bool:
         """:return: True if skill change successfully."""
@@ -175,11 +188,11 @@ class Focus:
 
     def unpause(self):
         if self.focused_timer.paused:
-            lapse = self.focused_timer.start()
+            self.focused_timer.start()
             # if lapse:
             #     self.history.add_entries(lapse)
         elif self.breaks_timer.paused:
-            lapse = self.breaks_timer.start()
+            self.breaks_timer.start()
             # if lapse:
             #     self.history.add_entries(lapse)
 

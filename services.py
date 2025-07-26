@@ -1,4 +1,5 @@
-from domain import Goal, Skill
+from conf import PRIORITY_ORDER
+from domain import Goal, Skill, Stat
 from repositories import (
     GoalsRepository,
     GoalUpdate,
@@ -7,7 +8,6 @@ from repositories import (
     StatsRepository,
     StatUpdate,
 )
-from conf import PRIORITY_ORDER
 
 
 class SkillsService:
@@ -63,7 +63,6 @@ class SkillsService:
         return skill_repo.create_skill(new_skill)
 
 
-
 class GoalsService:
     def complete_goal(self, goal_id: int) -> Goal:
         repository = GoalsRepository()
@@ -80,5 +79,7 @@ class GoalsService:
     def get_goals_by_priority(self, completed=False):
         """Get goals sorted by priority (URGENT → HIGH → MEDIUM → LOW)"""
         repository = GoalsRepository()
-        goals = [goal for goal in repository.get_all_goals() if goal.completed == completed]
+        goals = [
+            goal for goal in repository.get_all_goals() if goal.completed == completed
+        ]
         return sorted(goals, key=lambda g: PRIORITY_ORDER.get(g.priority.value, 999))
