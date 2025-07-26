@@ -83,3 +83,16 @@ class GoalsService:
             goal for goal in repository.get_all_goals() if goal.completed == completed
         ]
         return sorted(goals, key=lambda g: PRIORITY_ORDER.get(g.priority.value, 999))
+
+    def update_goal_priority(self, goal_id: int, new_priority) -> Goal:
+        """Update a goal's priority"""
+        repository = GoalsRepository()
+        goal = repository.get_goal_by_id(goal_id)
+        
+        goal.priority = new_priority
+        
+        repository.update_goal(
+            GoalUpdate(id=goal.id, priority=new_priority)
+        )
+        
+        return repository.get_goal_by_id(goal_id)

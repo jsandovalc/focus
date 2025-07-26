@@ -18,7 +18,7 @@ from toga.style.pack import CENTER, COLUMN, ROW, Pack
 
 from conf import PRIORITY_COLORS
 from domain import Goal
-from enums import Difficulty
+from enums import Difficulty, Priority
 from focus import Focus
 from services import GoalsService
 from signals import goal_added, level_gained, xp_gained
@@ -975,16 +975,23 @@ class FocusApp(toga.App):
         title_box.add(title_label)
         goal_box.add(title_box)
 
-        # Priority section with visual indicator
+        # Priority section with dropdown selector
         priority_box = toga.Box(style=Pack(direction=COLUMN, padding=(5, 10), flex=1))
-        priority_color = self._get_priority_color(goal.priority)
-        priority_label = toga.Label(
-            goal.priority.value.title(),
-            style=Pack(
-                padding=(0, 5), font_size=12, color=priority_color, font_weight="bold"
-            ),
+        
+        def _priority_changed(widget):
+            """Handle priority change for this goal"""
+            new_priority = Priority(widget.value.lower())
+            GoalsService().update_goal_priority(goal.id, new_priority)
+            # Refresh the goals list to maintain priority ordering
+            self._refresh_goals_list()
+        
+        priority_selection = toga.Selection(
+            items=[p.value.title() for p in Priority],
+            value=goal.priority.value.title(),
+            on_change=_priority_changed,
+            style=Pack(padding=(2, 5), font_size=11, width=80),
         )
-        priority_box.add(priority_label)
+        priority_box.add(priority_selection)
         goal_box.add(priority_box)
 
         # Difficulty section with visual indicator
@@ -1043,6 +1050,22 @@ class FocusApp(toga.App):
     def _get_priority_color(self, priority):
         """Return color code based on priority level"""
         return PRIORITY_COLORS.get(priority.value.lower(), "#6c757d")
+
+    def _refresh_goals_list(self):
+        """Refresh the goals list with updated priorities"""
+        # Get the scroll container (last child of goals_box)
+        goals_scroll = self.goals_box.children[-1]
+        
+        # Clear existing goals
+        goals_scroll.content.clear()
+        
+        # Re-add goals sorted by priority
+        sorted_goals = GoalsService().get_goals_by_priority(completed=False)
+        for goal in sorted_goals:
+            goal_box = self._create_goal_box(goal)
+            goals_scroll.content.add(goal_box)
+            # Add spacing between goals
+            goals_scroll.content.add(toga.Box(style=Pack(height=5)))
 
     def _create_timer_box(self):
         self.timer_box = toga.Box(
