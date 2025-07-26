@@ -949,9 +949,9 @@ class FocusApp(toga.App):
             # Add spacing between goals
             goals_list_box.add(toga.Box(style=Pack(height=5)))
 
-        # Wrap goals list in scroll container with max height
+        # Wrap goals list in scroll container that uses available space
         goals_scroll = toga.ScrollContainer(
-            content=goals_list_box, style=Pack(height=300, padding=5)
+            content=goals_list_box, style=Pack(flex=1, padding=5)
         )
 
         self.goals_box.add(goals_scroll)
