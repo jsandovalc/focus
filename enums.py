@@ -6,3 +6,10 @@ class Difficulty(StrEnum):
     MEDIUM = auto()
     HARD = auto()
     PROJECT = auto()
+
+
+class Priority(StrEnum):
+    LOW = auto()
+    MEDIUM = auto()
+    HIGH = auto()
+    URGENT = auto()

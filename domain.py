@@ -5,7 +5,7 @@ from typing import Annotated
 from pydantic import AfterValidator
 from sqlmodel import Field, SQLModel
 
-from enums import Difficulty
+from enums import Difficulty, Priority
 from signals import goal_completed, level_gained, xp_gained
 
 _NEXT_LEVEL_REQUIRED_XP_FACTOR = 1.5
@@ -31,6 +31,7 @@ class Skill(SkillBase):
     secondary_stat: Stat | None = None
 
     def add_xp(self, *, xp_earned: int):
+        previous_level = self.level
         self.xp += xp_earned
 
         xp_gained.send(self, xp_earned=xp_earned)
@@ -48,7 +49,7 @@ class Skill(SkillBase):
             if self.secondary_stat:
                 self.secondary_stat.value += _SECONDARY_STAT_INCREASE
 
-            level_gained.send(self)
+            level_gained.send(self, previous_level=previous_level, xp_gained=xp_earned)
 
 
 class StatBase(SQLModel):
@@ -64,6 +65,7 @@ class GoalBase(SQLModel):
     title: str
     description: str = ""
     difficulty: Difficulty = Difficulty.EASY
+    priority: Priority = Priority.MEDIUM
     completed: bool = False
 
 

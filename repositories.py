@@ -4,6 +4,7 @@ from sqlmodel import Session, SQLModel, select
 
 from db import get_session
 from domain import Goal, Skill, Stat
+from enums import Priority
 from models import GoalModel, SkillModel, StatModel
 
 
@@ -26,6 +27,7 @@ class SkillUpdate(SQLModel):
 class GoalUpdate(SQLModel):
     id: int
     completed: bool | None = None
+    priority: Priority | None = None
     main_skill: SkillUpdate | None = None
     secondary_skill: SkillUpdate | None = None
 
@@ -177,6 +179,7 @@ class GoalsRepository(BaseRepository):
             "title": goal.title,
             "description": goal.description,
             "difficulty": goal.difficulty,
+            "priority": goal.priority,
             "completed": goal.completed,
             "main_skill_id": goal.main_skill.id,
             "secondary_skill_id": goal.secondary_skill.id
