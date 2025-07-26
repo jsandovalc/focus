@@ -7,6 +7,7 @@ from repositories import (
     StatsRepository,
     StatUpdate,
 )
+from conf import PRIORITY_ORDER
 
 
 class SkillsService:
@@ -28,13 +29,39 @@ class SkillsService:
         stats_repo.update_stat(
             update=StatUpdate(id=skill.main_stat.id, value=skill.main_stat.value)
         )
-        stats_repo.update_stat(
-            update=StatUpdate(
-                id=skill.secondary_stat.id, value=skill.secondary_stat.value
+        if skill.secondary_stat:
+            stats_repo.update_stat(
+                update=StatUpdate(
+                    id=skill.secondary_stat.id, value=skill.secondary_stat.value
+                )
             )
-        )
 
         return repository.get_skill_by_id(skill_id)
+
+    def create_skill(
+        self, name: str, main_stat_name: str, secondary_stat_name: str | None
+    ) -> Skill:
+        skill_repo = SkillRepository()
+        stats_repo = StatsRepository(skill_repo.session)
+
+        # Get or create main stat
+        main_stat = stats_repo.get_stat_by_name(main_stat_name)
+        if not main_stat:
+            main_stat = stats_repo.create_stat(Stat(name=main_stat_name))
+
+        secondary_stat = None
+        if secondary_stat_name:
+            secondary_stat = stats_repo.get_stat_by_name(secondary_stat_name)
+            if not secondary_stat:
+                secondary_stat = stats_repo.create_stat(Stat(name=secondary_stat_name))
+
+        new_skill = Skill(
+            name=name,
+            main_stat=main_stat,
+            secondary_stat=secondary_stat,
+        )
+        return skill_repo.create_skill(new_skill)
+
 
 
 class GoalsService:
@@ -49,3 +76,9 @@ class GoalsService:
         )
 
         return repository.get_goal_by_id(goal_id)
+
+    def get_goals_by_priority(self, completed=False):
+        """Get goals sorted by priority (URGENT → HIGH → MEDIUM → LOW)"""
+        repository = GoalsRepository()
+        goals = [goal for goal in repository.get_all_goals() if goal.completed == completed]
+        return sorted(goals, key=lambda g: PRIORITY_ORDER.get(g.priority.value, 999))
