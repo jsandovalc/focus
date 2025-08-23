@@ -1189,12 +1189,12 @@ class FocusApp(toga.App):
         )
         self.skills_selection_box.add(skill_label)
 
-        # Recent skills quick access buttons (show first 4 skills if no recent usage yet)
-        recent_skills = SkillsService().get_recent_skills(4)
+        # Recent skills quick access buttons (show first 8 skills if no recent usage yet)
+        recent_skills = SkillsService().get_recent_skills(8)
         if not recent_skills:
-            # Fallback: show first 4 skills if no usage tracking yet
+            # Fallback: show first 8 skills if no usage tracking yet
             all_skills = list(self.focus_app.new_skills.values())
-            recent_skills = all_skills[:4]
+            recent_skills = all_skills[:8]
         
         if recent_skills:
             recent_label = toga.Label(
@@ -1208,19 +1208,29 @@ class FocusApp(toga.App):
             )
             self.skills_selection_box.add(recent_label)
             
-            self.recent_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=(5, 0)))
-            for skill in recent_skills:
-                btn = toga.Button(
-                    skill.name.title()[:8],  # Truncate long names
-                    on_press=lambda w, s=skill.name: self.select_recent_skill(s),
-                    style=Pack(
-                        padding=(2, 5), 
-                        font_size=11,
-                        background_color="#e9ecef",
-                        color="#495057"
-                    ),
-                )
-                self.recent_box.add(btn)
+            # Create grid container for buttons (2 rows of 4 buttons each)
+            self.recent_box = toga.Box(style=Pack(direction=COLUMN, alignment=CENTER, padding=(5, 0)))
+            
+            # Split skills into rows of 4
+            for row_start in range(0, min(len(recent_skills), 8), 4):
+                row_skills = recent_skills[row_start:row_start + 4]
+                row_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=(2, 0)))
+                
+                for skill in row_skills:
+                    btn = toga.Button(
+                        skill.name.title()[:8],  # Truncate long names
+                        on_press=lambda w, s=skill.name: self.select_recent_skill(s),
+                        style=Pack(
+                            padding=(2, 5), 
+                            font_size=11,
+                            background_color="#e9ecef",
+                            color="#495057"
+                        ),
+                    )
+                    row_box.add(btn)
+                
+                self.recent_box.add(row_box)
+            
             self.skills_selection_box.add(self.recent_box)
 
         skills: list[str] = [
@@ -1497,24 +1507,31 @@ class FocusApp(toga.App):
         """Refresh the recent skills buttons."""
         if hasattr(self, 'recent_box'):
             self.recent_box.clear()
-            recent_skills = SkillsService().get_recent_skills(4)
+            recent_skills = SkillsService().get_recent_skills(8)
             if not recent_skills:
-                # Fallback: show first 4 skills if no usage tracking yet
+                # Fallback: show first 8 skills if no usage tracking yet
                 all_skills = list(self.focus_app.new_skills.values())
-                recent_skills = all_skills[:4]
+                recent_skills = all_skills[:8]
             
-            for skill in recent_skills:
-                btn = toga.Button(
-                    skill.name.title()[:8],
-                    on_press=lambda w, s=skill.name: self.select_recent_skill(s),
-                    style=Pack(
-                        padding=(2, 5), 
-                        font_size=11,
-                        background_color="#e9ecef",
-                        color="#495057"
-                    ),
-                )
-                self.recent_box.add(btn)
+            # Split skills into rows of 4 and rebuild grid
+            for row_start in range(0, min(len(recent_skills), 8), 4):
+                row_skills = recent_skills[row_start:row_start + 4]
+                row_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=(2, 0)))
+                
+                for skill in row_skills:
+                    btn = toga.Button(
+                        skill.name.title()[:8],
+                        on_press=lambda w, s=skill.name: self.select_recent_skill(s),
+                        style=Pack(
+                            padding=(2, 5), 
+                            font_size=11,
+                            background_color="#e9ecef",
+                            color="#495057"
+                        ),
+                    )
+                    row_box.add(btn)
+                
+                self.recent_box.add(row_box)
 
 
 def main():
