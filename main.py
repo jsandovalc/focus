@@ -1111,9 +1111,9 @@ class FocusApp(toga.App):
         self.timer_label = toga.Label(
             "00:00",
             style=Pack(
-                padding=(20, 40),
+                padding=(10, 20),
                 alignment=CENTER,
-                font_size=120,
+                font_size=85,
                 font_weight="bold",
                 color="#2c3e50",
                 text_align=CENTER,
