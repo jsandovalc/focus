@@ -1,0 +1,2 @@
+;; ((nil . ((eval . (pyvenv-activate "/home/ark/workspace/focus/.venv"))
+;;          (python-pytest-executable . "/home/ark/workspace/focus/.venv/bin/pytest"))))

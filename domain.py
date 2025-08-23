@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 
 from pydantic import AfterValidator
@@ -22,6 +23,7 @@ class SkillBase(SQLModel):
     level: int = 1
     xp: int = 0
     xp_to_next_level: int = 100
+    last_used: datetime | None = None
 
 
 class Skill(SkillBase):

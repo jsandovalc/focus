@@ -1,6 +1,6 @@
-from services import SkillsService, GoalsService
-from repositories import SkillRepository, GoalsRepository
-from domain import Stat, Skill, Goal, Difficulty
+from domain import Difficulty, Goal, Skill, Stat
+from repositories import GoalsRepository, SkillRepository
+from services import GoalsService, SkillsService
 
 
 def test_increase_level():

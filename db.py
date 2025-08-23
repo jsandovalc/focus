@@ -17,11 +17,11 @@ def migrate_database():
     conn = sqlite3.connect(sqlite_file_name)
     cursor = conn.cursor()
 
-    # Check if priority column exists
+    # Check if priority column exists in goalmodel
     cursor.execute("PRAGMA table_info(goalmodel)")
-    columns = [column[1] for column in cursor.fetchall()]
+    goal_columns = [column[1] for column in cursor.fetchall()]
 
-    if "priority" not in columns:
+    if "priority" not in goal_columns:
         # Add priority column with default value 'MEDIUM' (matches enum)
         cursor.execute(
             "ALTER TABLE goalmodel ADD COLUMN priority TEXT DEFAULT 'MEDIUM'"
@@ -31,6 +31,17 @@ def migrate_database():
         # Fix any existing lowercase values to match enum
         cursor.execute(
             "UPDATE goalmodel SET priority = 'MEDIUM' WHERE priority = 'medium'"
+        )
+        conn.commit()
+
+    # Check if last_used column exists in skillmodel
+    cursor.execute("PRAGMA table_info(skillmodel)")
+    skill_columns = [column[1] for column in cursor.fetchall()]
+
+    if "last_used" not in skill_columns:
+        # Add last_used column for skill usage tracking
+        cursor.execute(
+            "ALTER TABLE skillmodel ADD COLUMN last_used DATETIME"
         )
         conn.commit()
 

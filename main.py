@@ -20,7 +20,7 @@ from conf import PRIORITY_COLORS
 from domain import Goal
 from enums import Difficulty, Priority
 from focus import Focus
-from services import GoalsService
+from services import GoalsService, SkillsService
 from signals import goal_added, level_gained, xp_gained
 from timer import duration_from_seconds
 
@@ -1068,7 +1068,16 @@ class FocusApp(toga.App):
             goals_scroll.content.add(toga.Box(style=Pack(height=5)))
 
     def _create_timer_box(self):
-        self.timer_box = toga.Box(
+        # Main container for timer tab
+        self.timer_box = toga.Box(style=Pack(direction=COLUMN, padding=0))
+        
+        # Create scrollable container for all timer content
+        timer_scroll_container = toga.ScrollContainer(
+            style=Pack(direction=COLUMN, flex=1)
+        )
+        
+        # Content box inside scroll container
+        timer_content_box = toga.Box(
             style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
         )
 
@@ -1122,7 +1131,7 @@ class FocusApp(toga.App):
         timer_card.add(self.progress_label)
         timer_card.add(self.break_progress)
 
-        self.timer_box.add(timer_card)
+        timer_content_box.add(timer_card)
 
         # Enhanced button container
         button_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=20))
@@ -1155,7 +1164,7 @@ class FocusApp(toga.App):
 
         button_box.add(self.pause_button)
         button_box.add(self.start_button)
-        self.timer_box.add(button_box)
+        timer_content_box.add(button_box)
         # Enhanced skill selection section
         self.skills_selection_box = toga.Box(
             style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
@@ -1173,6 +1182,40 @@ class FocusApp(toga.App):
             ),
         )
         self.skills_selection_box.add(skill_label)
+
+        # Recent skills quick access buttons (show first 4 skills if no recent usage yet)
+        recent_skills = SkillsService().get_recent_skills(4)
+        if not recent_skills:
+            # Fallback: show first 4 skills if no usage tracking yet
+            all_skills = list(self.focus_app.new_skills.values())
+            recent_skills = all_skills[:4]
+        
+        if recent_skills:
+            recent_label = toga.Label(
+                "Quick Access:",
+                style=Pack(
+                    font_size=12,
+                    color="#6c757d",
+                    padding_bottom=5,
+                    alignment=CENTER,
+                ),
+            )
+            self.skills_selection_box.add(recent_label)
+            
+            self.recent_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=(5, 0)))
+            for skill in recent_skills:
+                btn = toga.Button(
+                    skill.name.title()[:8],  # Truncate long names
+                    on_press=lambda w, s=skill.name: self.select_recent_skill(s),
+                    style=Pack(
+                        padding=(2, 5), 
+                        font_size=11,
+                        background_color="#e9ecef",
+                        color="#495057"
+                    ),
+                )
+                self.recent_box.add(btn)
+            self.skills_selection_box.add(self.recent_box)
 
         skills: list[str] = [
             skill.name.title() for skill in self.focus_app.new_skills.values()
@@ -1199,7 +1242,7 @@ class FocusApp(toga.App):
 
         skill_card.add(self.skill_selection)
         self.skills_selection_box.add(skill_card)
-        self.timer_box.add(self.skills_selection_box)
+        timer_content_box.add(self.skills_selection_box)
         # Enhanced statistics section
         stats_container = toga.Box(
             style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
@@ -1249,11 +1292,31 @@ class FocusApp(toga.App):
 
         stats_card.add(stats_grid)
         stats_container.add(stats_card)
-        self.timer_box.add(stats_container)
+        timer_content_box.add(stats_container)
+        
+        # Set content for scroll container and add to main timer box
+        timer_scroll_container.content = timer_content_box
+        self.timer_box.add(timer_scroll_container)
 
     def change_selected_skill(self, widget):
         if not self.focus_app.set_current_skill(widget.value.lower()):
             widget.value = self.focus_app.current_skill.name.title()
+        else:
+            # Mark skill as used when selected from dropdown
+            skill = self.focus_app.new_skills[widget.value.lower()]
+            SkillsService().mark_skill_as_used(skill.id)
+            # Refresh quick access buttons
+            self._refresh_recent_skills()
+
+    def select_recent_skill(self, skill_name: str):
+        """Handle quick-access skill selection from recent buttons."""
+        if self.focus_app.set_current_skill(skill_name):
+            self.skill_selection.value = skill_name.title()
+            # Mark as used for tracking
+            skill = self.focus_app.new_skills[skill_name]
+            SkillsService().mark_skill_as_used(skill.id)
+            # Refresh recent skills buttons
+            self._refresh_recent_skills()
 
     async def add_skill(self, widget):
         """Show a `Dialog` for input."""
@@ -1405,6 +1468,29 @@ class FocusApp(toga.App):
                 self.total_break_time_label.style.color = "#007bff"
 
             await asyncio.sleep(1)
+
+    def _refresh_recent_skills(self):
+        """Refresh the recent skills buttons."""
+        if hasattr(self, 'recent_box'):
+            self.recent_box.clear()
+            recent_skills = SkillsService().get_recent_skills(4)
+            if not recent_skills:
+                # Fallback: show first 4 skills if no usage tracking yet
+                all_skills = list(self.focus_app.new_skills.values())
+                recent_skills = all_skills[:4]
+            
+            for skill in recent_skills:
+                btn = toga.Button(
+                    skill.name.title()[:8],
+                    on_press=lambda w, s=skill.name: self.select_recent_skill(s),
+                    style=Pack(
+                        padding=(2, 5), 
+                        font_size=11,
+                        background_color="#e9ecef",
+                        color="#495057"
+                    ),
+                )
+                self.recent_box.add(btn)
 
 
 def main():

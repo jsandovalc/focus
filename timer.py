@@ -11,6 +11,7 @@ class LapseType(StrEnum):
 
 @dataclass
 class Duration:
+    hours: int
     minutes: int
     seconds: int
 
@@ -18,12 +19,17 @@ class Duration:
         return iter(astuple(self))
 
     def __str__(self):
+        if self.hours > 0:
+            return f"{self.hours:02d}:{self.minutes:02d}:{self.seconds:02d}"
+
         return f"{self.minutes:02d}:{self.seconds:02d}"
 
 
 def duration_from_seconds(seconds) -> Duration:
     """Given an amount of seconds, return a `Duration`."""
-    return Duration(minutes=seconds // 60, seconds=seconds % 60)
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    return Duration(hours=hours, minutes=minutes, seconds=seconds)
 
 
 @dataclass
@@ -167,14 +173,13 @@ class Timer:
     def get_total_elapsed_minutes_seconds(self) -> Duration:
         """I return the total of elapsed seconds for every time"""
         total_elapsed_time = self.get_elapsed_seconds()
-        minutes, seconds = total_elapsed_time // 60, total_elapsed_time % 60
-        return Duration(minutes=minutes, seconds=seconds)
+        return duration_from_seconds(total_elapsed_time)
 
     def get_elapsed_minutes_seconds(self) -> Duration:
         """I return a tuple of elapsed minutes and seconds since the last start."""
         now = _now()
         if self.running and self._start_time:
             elapsed_seconds = int((now - self._start_time).total_seconds())
-            return Duration(minutes=elapsed_seconds // 60, seconds=elapsed_seconds % 60)
+            return duration_from_seconds(elapsed_seconds)
 
-        return Duration(minutes=0, seconds=0)
+        return Duration(hours=0, minutes=0, seconds=0)

@@ -93,3 +93,11 @@ def test_pause_elapsed_time(freezer):
 
     freezer.tick(delta=dt.timedelta(seconds=3))
     assert t.get_current_elapsed_time() == 8
+
+
+def test_duration_formatting_with_hours():
+    """Test that duration is formatted correctly with hours."""
+    from timer import duration_from_seconds
+
+    duration = duration_from_seconds(3661)  # 1 hour, 1 minute, 1 second
+    assert str(duration) == "01:01:01"

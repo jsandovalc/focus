@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from conf import PRIORITY_ORDER
 from domain import Goal, Skill, Stat
 from repositories import (
@@ -61,6 +63,16 @@ class SkillsService:
             secondary_stat=secondary_stat,
         )
         return skill_repo.create_skill(new_skill)
+
+    def get_recent_skills(self, limit: int = 4) -> list[Skill]:
+        """Get most recently used skills."""
+        repository = SkillRepository()
+        return repository.get_skills_by_recent_usage(limit)
+
+    def mark_skill_as_used(self, skill_id: int) -> None:
+        """Update the last_used timestamp when skill is selected."""
+        repository = SkillRepository()
+        repository.update_skill_last_used(skill_id, datetime.now())
 
 
 class GoalsService:

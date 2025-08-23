@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from datetime import datetime
 
 from sqlmodel import Session, SQLModel, select
 
@@ -19,6 +20,7 @@ class SkillUpdate(SQLModel):
     level: int | None = None
     xp: int | None = None
     xp_to_next_level: int | None = None
+    last_used: datetime | None = None
 
     main_stat: StatUpdate | None = None
     secondary_stat: StatUpdate | None = None
@@ -106,6 +108,24 @@ class SkillRepository(BaseRepository):
             Skill.model_validate(skill)
             for skill in self.session.exec(select(SkillModel)).all()
         )
+
+    def get_skills_by_recent_usage(self, limit: int = 4) -> list[Skill]:
+        """Get skills ordered by most recently used (last_used DESC)."""
+        skills = self.session.exec(
+            select(SkillModel)
+            .where(SkillModel.last_used.isnot(None))
+            .order_by(SkillModel.last_used.desc())
+            .limit(limit)
+        ).all()
+        return [Skill.model_validate(skill) for skill in skills]
+
+    def update_skill_last_used(self, skill_id: int, last_used: datetime) -> None:
+        """Update the last_used timestamp for a skill."""
+        skill_to_update = self.session.get(SkillModel, skill_id)
+        if skill_to_update:
+            skill_to_update.last_used = last_used
+            self.session.add(skill_to_update)
+            self.session.commit()
 
     def update_skill(self, *, update: SkillUpdate) -> Skill:
         skill_to_update = self.session.get(SkillModel, update.id)
