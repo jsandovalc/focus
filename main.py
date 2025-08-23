@@ -353,7 +353,10 @@ class FocusApp(toga.App):
         GoalsService().complete_goal(goal.id)
 
     def startup(self) -> None:
-        self.main_window = toga.Window(size=(800, 600))
+        self.main_window = toga.Window(
+            size=(800, 600),        # Initial size
+            resizable=True          # Allow user resizing
+        )
 
         self._create_timer_box()
         self._create_goals_box()
