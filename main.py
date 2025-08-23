@@ -260,6 +260,9 @@ class FocusApp(toga.App):
 
         self.notified = False
         "Notify when break time runs out. Only once."
+        
+        self.stats_expanded = True
+        "Track whether session statistics are expanded or collapsed"
 
     def _on_level_gained(self, skill, previous_level, xp_gained):
         """Wrapper to handle async level_gained callback."""
@@ -1260,46 +1263,64 @@ class FocusApp(toga.App):
             )
         )
 
-        stats_title = toga.Label(
-            "📊 Session Statistics",
+        # Collapsible stats header with toggle button
+        stats_header_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding_bottom=10))
+        
+        self.stats_toggle_button = toga.Button(
+            "▼ 📊 Session Statistics",
+            on_press=self.toggle_stats_visibility,
             style=Pack(
                 font_size=14,
                 font_weight="bold",
                 color="#495057",
-                padding_bottom=15,
+                background_color="transparent",
                 alignment=CENTER,
             ),
         )
-        stats_card.add(stats_title)
+        stats_header_box.add(self.stats_toggle_button)
+        stats_card.add(stats_header_box)
 
-        # Create a grid-like layout for stats
-        stats_grid = toga.Box(style=Pack(direction=COLUMN, padding=5))
+        # Create a collapsible container for stats
+        self.stats_content = toga.Box(style=Pack(direction=COLUMN, padding=5))
 
         self.total_focused_time_label = toga.Label(
             "🎯 Total focused time: 00:00",
             style=Pack(padding=5, alignment=CENTER, font_size=12, color="#28a745"),
         )
-        stats_grid.add(self.total_focused_time_label)
+        self.stats_content.add(self.total_focused_time_label)
 
         self.total_break_time_label = toga.Label(
             "☕ Total break time: 00:00",
             style=Pack(padding=5, alignment=CENTER, font_size=12, color="#007bff"),
         )
-        stats_grid.add(self.total_break_time_label)
+        self.stats_content.add(self.total_break_time_label)
 
         self.earned_break_time_label = toga.Label(
             "⏰ Earned break time: 0 minutes",
             style=Pack(padding=5, alignment=CENTER, font_size=12, color="#6c757d"),
         )
-        stats_grid.add(self.earned_break_time_label)
+        self.stats_content.add(self.earned_break_time_label)
 
-        stats_card.add(stats_grid)
+        stats_card.add(self.stats_content)
         stats_container.add(stats_card)
         timer_content_box.add(stats_container)
         
         # Set content for scroll container and add to main timer box
         timer_scroll_container.content = timer_content_box
         self.timer_box.add(timer_scroll_container)
+
+    def toggle_stats_visibility(self, widget):
+        """Toggle visibility of session statistics section."""
+        self.stats_expanded = not self.stats_expanded
+        
+        if self.stats_expanded:
+            # Show stats content
+            self.stats_content.style.visibility = "visible"
+            self.stats_toggle_button.text = "▼ 📊 Session Statistics"
+        else:
+            # Hide stats content  
+            self.stats_content.style.visibility = "hidden"
+            self.stats_toggle_button.text = "▶ 📊 Session Statistics"
 
     def change_selected_skill(self, widget):
         if not self.focus_app.set_current_skill(widget.value.lower()):
