@@ -1081,7 +1081,7 @@ class FocusApp(toga.App):
         
         # Content box inside scroll container
         timer_content_box = toga.Box(
-            style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=15)
         )
 
         # Enhanced timer display container with card-like design
@@ -1089,7 +1089,7 @@ class FocusApp(toga.App):
             style=Pack(
                 direction=COLUMN,
                 alignment=CENTER,
-                padding=30,
+                padding=20,
                 background_color="#f8f9fa",
             )
         )
@@ -1137,7 +1137,7 @@ class FocusApp(toga.App):
         timer_content_box.add(timer_card)
 
         # Enhanced button container
-        button_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=20))
+        button_box = toga.Box(style=Pack(direction=ROW, alignment=CENTER, padding=15))
 
         self.pause_button = toga.Button(
             "⏸ Pause",
@@ -1170,7 +1170,7 @@ class FocusApp(toga.App):
         timer_content_box.add(button_box)
         # Enhanced skill selection section
         self.skills_selection_box = toga.Box(
-            style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=15)
         )
 
         # Skill selection label
@@ -1248,7 +1248,7 @@ class FocusApp(toga.App):
         timer_content_box.add(self.skills_selection_box)
         # Enhanced statistics section
         stats_container = toga.Box(
-            style=Pack(direction=COLUMN, alignment=CENTER, padding=20)
+            style=Pack(direction=COLUMN, alignment=CENTER, padding=15)
         )
 
         stats_card = toga.Box(
