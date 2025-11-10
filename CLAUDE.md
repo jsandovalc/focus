@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Focus! is an RPG-inspired productivity app that combines the Flowmodoro technique with skill development and goal tracking. It's built with Python, using Toga for the GUI, SQLModel for database operations, and uses a service-oriented architecture.
+Focus! is an RPG-inspired productivity app that combines the Flowmodoro technique with skill development and goal tracking. It's built with Python, using PySide6 (Qt6) for the GUI, SQLModel for database operations, and uses a service-oriented architecture.
 
 ## Core Architecture
 
@@ -25,9 +25,13 @@ The application follows a layered architecture:
 - **GoalsService**: Manages goal completion logic
 
 ### UI Layer (`main.py`)
-- **FocusApp**: Main Toga application with tabbed interface
+- **FocusMainWindow**: Main PySide6 QMainWindow with tabbed interface (Timer, Stats, Skills, Goals)
+- **NewSkillDialog, NewGoalDialog, LevelUpDialog**: Qt modal dialogs for user interactions
+- **Signal Bridge**: Bridges Blinker signals to Qt signals for thread-safe UI updates
 - **Focus**: Core business logic and timer management (`focus.py`)
 - **Timer**: Time tracking utilities (`timer.py`)
+
+**Note**: The old Toga implementation is preserved as `main_toga.py` for reference.
 
 ### Supporting Modules
 - **`signals.py`**: Event-driven communication using Blinker
@@ -84,10 +88,12 @@ uv run mypy .                   # Type checking
 - Goals can have main and secondary skills
 
 ### Signal-Driven Architecture
-The app uses Blinker signals for loose coupling:
+The app uses Blinker signals for loose coupling between business logic and UI:
 - `xp_gained`: Fired when XP is awarded
 - `level_gained`: Fired when skill levels up
 - `goal_added`/`goal_completed`: Goal lifecycle events
+
+**Qt Signal Bridge**: The UI bridges Blinker signals to Qt signals (QTimer-based) to ensure thread-safe UI updates. Blinker signals from the service layer are caught by bridge methods and re-emitted as Qt signals that connect to UI update handlers.
 
 ## Database Schema
 
@@ -155,3 +161,4 @@ Goals use a 4-level priority system for organization:
 - **Sorting**: Goals display in priority order (urgent → high → medium → low)  
 - **UI**: Color-coded priority indicators in goals table
 - **Database**: Priority column with migration support for existing data
+- Use Qt and PySide6 best practices.

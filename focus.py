@@ -1,5 +1,6 @@
 import conf
 import db
+from db import get_session_context
 from domain import Goal, Skill, Stat
 from repositories import (
     GoalsRepository,
@@ -35,11 +36,9 @@ class Focus:
         self.earned_break_time: int = 0
         self.focus_break_ratio = conf.BREAK_RATIO
 
-        self._stats_repository = StatsRepository()
         self.stats: dict[str, Stat] = {}
         self.load_stats()
 
-        self._skills_repository = NewSkillRepository()
         self.new_skills: dict[str, Skill] = {}
         self.load_skills()
 
@@ -51,22 +50,26 @@ class Focus:
 
         self.current_skill: Skill | None = skill
 
-        self._goals_repository = GoalsRepository()
-
         self.goals: dict[int, Goal] = {}
         self.load_goals()
 
     def load_goals(self):
-        for goal in self._goals_repository.get_all_goals():
-            self.goals[goal.id] = goal
+        with get_session_context() as session:
+            goals_repository = GoalsRepository(session)
+            for goal in goals_repository.get_all_goals():
+                self.goals[goal.id] = goal
 
     def load_skills(self):
-        for skill in self._skills_repository.get_all_skills():
-            self.new_skills[skill.name] = skill
+        with get_session_context() as session:
+            skills_repository = NewSkillRepository(session)
+            for skill in skills_repository.get_all_skills():
+                self.new_skills[skill.name] = skill
 
     def load_stats(self):
-        for stat in self._stats_repository.get_all_stats():
-            self.stats[stat.name] = stat
+        with get_session_context() as session:
+            stats_repository = StatsRepository(session)
+            for stat in stats_repository.get_all_stats():
+                self.stats[stat.name] = stat
 
     @property
     def focusing(self) -> bool:
@@ -85,11 +88,10 @@ class Focus:
         return self.focused_timer.paused or self.breaks_timer.paused
 
     def add_goal(self, goal: Goal):
-        new_goal = GoalsRepository().create_goal(goal)
-
-        self.goals[new_goal.id] = new_goal
-
-        goal_added.send(goal)
+        with get_session_context() as session:
+            new_goal = GoalsRepository(session).create_goal(goal)
+            self.goals[new_goal.id] = new_goal
+            goal_added.send(goal)
 
     def add_skill(
         self, name: str, main_stat_name: str, secondary_stat_name: str | None
@@ -104,48 +106,55 @@ class Focus:
 
     def complete_goal(self, goal_id: int) -> bool:
         """`False` means goal was already completed. No callbacks were run."""
-        goals_repository = GoalsRepository()
-        goal = goals_repository.get_goal_by_id(goal_id)
+        with get_session_context() as session:
+            goals_repository = GoalsRepository(session)
+            goal = goals_repository.get_goal_by_id(goal_id)
 
-        if goal.completed:
-            return False
+            if goal.completed:
+                return False
 
-        goal.complete()
+            goal.complete()
 
-        goals_repository.update_goal(
-            GoalUpdate(
-                id=goal.id,
-                completed=goal.completed,
-                main_skill=SkillUpdate(
-                    id=goal.main_skill.id,
-                    name=goal.main_skill.name,
-                    level=goal.main_skill.level,
-                    xp=goal.main_skill.xp,
-                    xp_to_next_level=goal.main_skill.xp_to_next_level,
-                    main_stat=goal.main_skill.main_stat,
-                    secondary_stat=goal.main_skill.secondary_stat,
-                ),
-                secondary_skill=SkillUpdate(
-                    id=goal.secondary_skill.id,
-                    name=goal.secondary_skill.name,
-                    level=goal.secondary_skill.level,
-                    xp=goal.secondary_skill.xp,
-                    xp_to_next_level=goal.secondary_skill.xp_to_next_level,
-                    main_stat=goal.secondary_skill.main_stat,
-                    secondary_stat=goal.secondary_skill.secondary_stat,
+            goals_repository.update_goal(
+                GoalUpdate(
+                    id=goal.id,
+                    completed=goal.completed,
+                    main_skill=SkillUpdate(
+                        id=goal.main_skill.id,
+                        name=goal.main_skill.name,
+                        level=goal.main_skill.level,
+                        xp=goal.main_skill.xp,
+                        xp_to_next_level=goal.main_skill.xp_to_next_level,
+                        main_stat=goal.main_skill.main_stat,
+                        secondary_stat=goal.main_skill.secondary_stat,
+                    ),
+                    secondary_skill=SkillUpdate(
+                        id=goal.secondary_skill.id,
+                        name=goal.secondary_skill.name,
+                        level=goal.secondary_skill.level,
+                        xp=goal.secondary_skill.xp,
+                        xp_to_next_level=goal.secondary_skill.xp_to_next_level,
+                        main_stat=goal.secondary_skill.main_stat,
+                        secondary_stat=goal.secondary_skill.secondary_stat,
+                    )
+                    if goal.secondary_skill
+                    else None,
                 )
-                if goal.secondary_skill
-                else None,
             )
-        )
 
-        return True
+            return True
 
     def focus(self):
         """I start a focus session."""
         if self.resting:
-            self.earned_break_time -= self.get_current_clock_time()
-        self.breaks_timer.stop()
+            # Get the current break time BEFORE stopping the timer
+            current_break_time = self.get_current_clock_time()
+            self.breaks_timer.stop()
+            # Deduct the used break time from earned break time
+            self.earned_break_time -= current_break_time
+        else:
+            self.breaks_timer.stop()
+
         # Ensure earned_break_time is not negative and doesn't "reset" to a previous value
         if self.earned_break_time < 0:  # If it went negative, it means it was depleted
             self.earned_break_time = 0
@@ -196,6 +205,12 @@ class Focus:
             # if lapse:
             #     self.history.add_entries(lapse)
 
+    def cancel(self):
+        """Cancel the current focus session without awarding XP or break time."""
+        if self.focusing:
+            self.focused_timer.stop()
+            # Don't award XP or earned break time - just abandon the session
+
     def get_current_clock_time(self) -> int:
         """I return elapsed time for current working timer."""
         if self.focused_timer.running:
@@ -211,3 +226,27 @@ class Focus:
 
     def get_total_rested_seconds(self) -> int:
         return self.breaks_timer.get_total_elapsed_time()
+
+    def reset_earned_break_time(self) -> bool:
+        """Reset accumulated break time to zero.
+
+        This operation discards all earned rest time, typically used when
+        returning from an external break and wanting a fresh start.
+
+        :return: True if reset was performed, False if operation was blocked.
+
+        Note: Reset is only allowed when NOT actively resting to prevent
+        state inconsistency. If currently resting, the operation is rejected.
+        """
+        # Business rule: Cannot reset during an active rest session
+        if self.resting:
+            return False
+
+        # Reset the earned break time
+        self.earned_break_time = 0
+
+        # Emit signal to notify observers
+        from signals import rest_time_reset
+        rest_time_reset.send()
+
+        return True

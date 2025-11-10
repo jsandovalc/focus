@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import contextmanager
 
 from sqlmodel import Session, SQLModel, create_engine
 
@@ -52,5 +53,19 @@ def _get_session_internal() -> Session:
     return Session(engine, expire_on_commit=False)
 
 
+@contextmanager
+def get_session_context():
+    """Context manager for database sessions - ensures proper cleanup."""
+    session = _get_session_internal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 def get_session() -> Session:
+    """Get a session - caller is responsible for closing it.
+
+    DEPRECATED: Use get_session_context() instead to ensure proper cleanup.
+    """
     return _get_session_internal()
