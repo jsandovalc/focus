@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -30,7 +31,7 @@ from PySide6.QtWidgets import (
 from domain import Goal
 from enums import Difficulty, Priority
 from focus import Focus
-from services import GoalsService
+from services import GoalsService, SkillsService
 from signals import goal_added, level_gained, rest_time_reset, xp_gained
 from timer import duration_from_seconds
 
@@ -1017,6 +1018,36 @@ class FocusMainWindow(QMainWindow):
         divider2.setStyleSheet("background-color: #e9ecef; border: none;")
         main_layout.addWidget(divider2)
 
+        # Quick Access buttons section
+        quick_access_section = QWidget()
+        quick_access_section.setStyleSheet("background: transparent; border: none;")
+        quick_access_layout = QVBoxLayout()
+        quick_access_layout.setContentsMargins(0, 10, 0, 10)
+        quick_access_layout.setSpacing(8)
+        quick_access_section.setLayout(quick_access_layout)
+
+        # Quick Access label
+        quick_access_label = QLabel("Quick Access:")
+        quick_access_label.setStyleSheet(
+            "font-size: 12px; font-weight: 600; color: #6c757d; "
+            "background: transparent; border: none;"
+        )
+        quick_access_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        quick_access_layout.addWidget(quick_access_label)
+
+        # Grid container for buttons (2 rows x 4 columns)
+        self.quick_access_grid = QWidget()
+        self.quick_access_grid_layout = QGridLayout()
+        self.quick_access_grid_layout.setSpacing(6)
+        self.quick_access_grid_layout.setContentsMargins(10, 0, 10, 0)
+        self.quick_access_grid.setLayout(self.quick_access_grid_layout)
+
+        # Populate initial buttons
+        self._refresh_quick_access_buttons()
+
+        quick_access_layout.addWidget(self.quick_access_grid)
+        main_layout.addWidget(quick_access_section)
+
         # Skill selection
         skill_section = QWidget()
         skill_section.setStyleSheet("background: transparent; border: none;")
@@ -1194,9 +1225,120 @@ class FocusMainWindow(QMainWindow):
         return widget
 
     def _on_skill_changed(self, skill_name):
-        """Handle skill selection change."""
-        self.focus_app.set_current_skill(skill_name.lower())
+        """Handle skill selection change from dropdown."""
+        skill_name_lower = skill_name.lower()
+        self.focus_app.set_current_skill(skill_name_lower)
+
+        # Mark skill as used and refresh quick access buttons
+        skill = self.focus_app.new_skills.get(skill_name_lower)
+        if skill:
+            SkillsService().mark_skill_as_used(skill.id)
+            self._refresh_quick_access_buttons()
+
         print(f"Skill changed to: {skill_name}")
+
+    def _on_quick_access_clicked(self, skill_name):
+        """Handle quick access button click."""
+        skill_name_lower = skill_name.lower()
+
+        # Set the current skill
+        if self.focus_app.set_current_skill(skill_name_lower):
+            # Update the dropdown to reflect the selection
+            self.skill_selection.setCurrentText(skill_name.title())
+
+            # Mark skill as used and refresh buttons
+            skill = self.focus_app.new_skills.get(skill_name_lower)
+            if skill:
+                SkillsService().mark_skill_as_used(skill.id)
+                self._refresh_quick_access_buttons()
+
+            print(f"Quick access skill selected: {skill_name}")
+
+    def _refresh_quick_access_buttons(self):
+        """Refresh the quick access buttons with most recent skills."""
+        # Clear existing buttons
+        while self.quick_access_grid_layout.count():
+            item = self.quick_access_grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Get recent skills (up to 8)
+        recent_skills = SkillsService().get_recent_skills(8)
+
+        # If no recent skills, use first 8 skills as fallback
+        if not recent_skills:
+            all_skills = list(self.focus_app.new_skills.values())
+            recent_skills = all_skills[:8]
+
+        # Create buttons in a 2x4 grid
+        for idx, skill in enumerate(recent_skills[:8]):
+            row = idx // 4  # 0 or 1 (2 rows)
+            col = idx % 4   # 0-3 (4 columns)
+
+            # Truncate long skill names to 14 characters
+            button_text = skill.name.title()
+            if len(button_text) > 14:
+                button_text = button_text[:14] + "…"
+
+            button = QPushButton(button_text)
+            button.setFixedSize(110, 32)
+
+            # Add tooltip with full skill name
+            button.setToolTip(skill.name.title())
+
+            # Check if this is the currently selected skill
+            is_current = (
+                hasattr(self.focus_app, 'current_skill') and
+                self.focus_app.current_skill and
+                skill.name == self.focus_app.current_skill.name
+            )
+
+            # Apply different styling for current vs non-current skills
+            if is_current:
+                button.setStyleSheet("""
+                    QPushButton {
+                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                            stop:0 #667eea, stop:1 #764ba2);
+                        color: white;
+                        font-size: 11px;
+                        font-weight: 600;
+                        border: 1px solid #5568d3;
+                        border-radius: 4px;
+                        padding: 4px 8px;
+                    }
+                    QPushButton:hover {
+                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                            stop:0 #5568d3, stop:1 #6a3f92);
+                    }
+                    QPushButton:pressed {
+                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                            stop:0 #4a5bc4, stop:1 #5d3682);
+                    }
+                """)
+            else:
+                button.setStyleSheet("""
+                    QPushButton {
+                        background-color: #e9ecef;
+                        color: #495057;
+                        font-size: 11px;
+                        font-weight: 500;
+                        border: 1px solid #ced4da;
+                        border-radius: 4px;
+                        padding: 4px 8px;
+                    }
+                    QPushButton:hover {
+                        background-color: #dee2e6;
+                        border-color: #adb5bd;
+                    }
+                    QPushButton:pressed {
+                        background-color: #ced4da;
+                    }
+                """)
+
+            # Use lambda with default argument to capture the skill name
+            button.clicked.connect(lambda checked, name=skill.name: self._on_quick_access_clicked(name))
+
+            self.quick_access_grid_layout.addWidget(button, row, col)
 
     def _on_pause_clicked(self):
         """Handle pause button click - pause or resume timer."""
