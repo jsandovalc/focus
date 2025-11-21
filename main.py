@@ -6,7 +6,7 @@ Migration from Toga to PySide6.
 import sys
 
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -34,6 +34,7 @@ from focus import Focus
 from services import GoalsService, SkillsService
 from signals import goal_added, level_gained, rest_time_reset, xp_gained
 from timer import duration_from_seconds
+from styles import jrpg_theme
 
 
 class NewSkillDialog(QDialog):
@@ -532,6 +533,11 @@ class FocusMainWindow(QMainWindow):
             )
             skill_data["progress_bar"].setValue(int(current_progress * 100))
 
+        # Update current skill XP display if this is the current skill
+        if hasattr(self.focus_app, 'current_skill') and self.focus_app.current_skill:
+            if skill.name == self.focus_app.current_skill.name:
+                self._update_current_skill_xp_display()
+
     def _update_stat_card(self, stat_name, new_value):
         """Update a stat card with a new value."""
         if stat_name not in self.stat_cards:
@@ -571,46 +577,24 @@ class FocusMainWindow(QMainWindow):
         duration = duration_from_seconds(current_seconds)
         self.timer_label.setText(str(duration))
 
-        # Update state indicator and button states
+        # Update state indicator and button states with JRPG styling
         if self.focus_app.focusing:
             # Reset notification flag when focusing (so we can notify again on next break)
             self.notified = False
 
-            self.state_indicator.setText("🎯 Focusing")
-            self.state_indicator.setStyleSheet(
-                "font-size: 12px; font-weight: 600; color: #28a745; "
-                "background: transparent; border: none; letter-spacing: 0.5px;"
-            )
-            self.start_button.setText("☕ Take Break")
-            self.start_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #007bff;
-                    color: white;
-                    font-size: 13px;
-                    font-weight: 600;
-                    border: none;
-                    border-radius: 6px;
-                    padding: 8px 20px;
-                }
-                QPushButton:hover {
-                    background-color: #0056b3;
-                }
-                QPushButton:pressed {
-                    background-color: #004085;
-                }
-            """)
+            self.state_indicator.setText("⚔️ IN BATTLE")
+            self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("focusing"))
+            self.start_button.setText("☕ REST AT INN")
+            self.start_button.setStyleSheet(jrpg_theme.get_rest_button_style())
             self.pause_button.setVisible(True)
             self.cancel_button.setVisible(True)
 
             if self.focus_app.paused:
-                self.pause_button.setText("Resume")
-                self.state_indicator.setText("⏸ Paused")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #ffc107; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.pause_button.setText("▶ RESUME")
+                self.state_indicator.setText("⏸ PAUSED")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("paused"))
             else:
-                self.pause_button.setText("Pause")
+                self.pause_button.setText("⏸ PAUSE")
 
         elif self.focus_app.resting:
             # Check for overtime and send notification
@@ -619,11 +603,8 @@ class FocusMainWindow(QMainWindow):
 
             if (earned_break_seconds - current_break_time) < 0:
                 # We're in overtime!
-                self.state_indicator.setText("⚠️ Overtime!")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #dc3545; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.state_indicator.setText("⚠️ OVERTIME!")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("overtime"))
 
                 # Send notification if we haven't already
                 if not self.notified and not self.focus_app.paused:
@@ -638,79 +619,35 @@ class FocusMainWindow(QMainWindow):
                     QApplication.beep()
             else:
                 # Normal break time
-                self.state_indicator.setText("☕ Resting")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #007bff; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.state_indicator.setText("☕ RESTING AT INN")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("resting"))
 
-            self.start_button.setText("🎯 Start Focus")
-            self.start_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #28a745;
-                    color: white;
-                    font-size: 13px;
-                    font-weight: 600;
-                    border: none;
-                    border-radius: 6px;
-                    padding: 8px 20px;
-                }
-                QPushButton:hover {
-                    background-color: #218838;
-                }
-                QPushButton:pressed {
-                    background-color: #1e7e34;
-                }
-            """)
+            self.start_button.setText("⚔️ ENTER BATTLE")
+            self.start_button.setStyleSheet(jrpg_theme.get_focus_button_style())
             self.pause_button.setVisible(True)
             self.cancel_button.setVisible(False)
 
             if self.focus_app.paused:
-                self.pause_button.setText("Resume")
-                self.state_indicator.setText("⏸ Paused")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #ffc107; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.pause_button.setText("▶ RESUME")
+                self.state_indicator.setText("⏸ PAUSED")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("paused"))
             else:
-                self.pause_button.setText("Pause")
+                self.pause_button.setText("⏸ PAUSE")
 
         else:
             # Check if we're paused (but not actively focusing or resting)
             if self.focus_app.paused:
-                self.pause_button.setText("Resume")
+                self.pause_button.setText("▶ RESUME")
                 self.pause_button.setVisible(True)
-                self.state_indicator.setText("⏸ Paused")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #ffc107; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.state_indicator.setText("⏸ PAUSED")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("paused"))
             else:
-                self.state_indicator.setText("Ready to Focus")
-                self.state_indicator.setStyleSheet(
-                    "font-size: 12px; font-weight: 600; color: #6c757d; "
-                    "background: transparent; border: none; letter-spacing: 0.5px;"
-                )
+                self.state_indicator.setText("⚔️ READY TO FOCUS")
+                self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("idle"))
                 self.pause_button.setVisible(False)
 
-            self.start_button.setText("🎯 Start Focus")
-            self.start_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #28a745;
-                    color: white;
-                    font-size: 13px;
-                    font-weight: 600;
-                    border: none;
-                    border-radius: 6px;
-                    padding: 8px 20px;
-                }
-                QPushButton:hover {
-                    background-color: #218838;
-                }
-                QPushButton:pressed {
-                    background-color: #1e7e34;
-                }
-            """)
+            self.start_button.setText("⚔️ ENTER BATTLE")
+            self.start_button.setStyleSheet(jrpg_theme.get_focus_button_style())
             self.cancel_button.setVisible(False)
 
         # Update break time progress bar
@@ -844,20 +781,48 @@ class FocusMainWindow(QMainWindow):
         self.tabs.addTab(timer_container, "Timer")
 
     def _create_timer_display_card(self):
-        """Create the main timer display card."""
-        # Single unified card
+        """Create the main timer display card with JRPG Battle Arena styling."""
+        # Single unified card with JRPG theme
         main_card = QWidget()
+        main_card.setObjectName("timer_card")
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(25, 25, 25, 25)
+        main_layout.setSpacing(20)
         main_card.setLayout(main_layout)
-        main_card.setStyleSheet("""
-            QWidget {
-                background-color: white;
-                border-radius: 8px;
-                border: 1px solid #e0e0e0;
-            }
-        """)
+        # Apply JRPG timer card style
+        main_card.setStyleSheet(jrpg_theme.get_timer_card_style())
+
+        # Add decorative corner elements
+        corners_container = QWidget()
+        corners_container.setStyleSheet("background: transparent; border: none;")
+        corners_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        corners_layout = QGridLayout()
+        corners_layout.setContentsMargins(15, 15, 15, 15)
+        corners_layout.setSpacing(0)
+        corners_container.setLayout(corners_layout)
+
+        # Corner decorations (using Unicode box drawing characters for SNES-style corners)
+        top_left = QLabel("╔═")
+        top_left.setStyleSheet(jrpg_theme.get_corner_decoration_style())
+        corners_layout.addWidget(top_left, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+
+        top_right = QLabel("═╗")
+        top_right.setStyleSheet(jrpg_theme.get_corner_decoration_style())
+        corners_layout.addWidget(top_right, 0, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+
+        bottom_left = QLabel("╚═")
+        bottom_left.setStyleSheet(jrpg_theme.get_corner_decoration_style())
+        corners_layout.addWidget(bottom_left, 1, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+
+        bottom_right = QLabel("═╝")
+        bottom_right.setStyleSheet(jrpg_theme.get_corner_decoration_style())
+        corners_layout.addWidget(bottom_right, 1, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+
+        # Stretch to push corners to edges
+        corners_layout.setRowStretch(0, 1)
+        corners_layout.setRowStretch(1, 1)
+        corners_layout.setColumnStretch(0, 1)
+        corners_layout.setColumnStretch(1, 1)
 
         # Timer section
         timer_section = QWidget()
@@ -868,21 +833,15 @@ class FocusMainWindow(QMainWindow):
         timer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         timer_section.setLayout(timer_layout)
 
-        # State indicator
-        self.state_indicator = QLabel("Ready to Focus")
-        self.state_indicator.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #6c757d; "
-            "background: transparent; border: none; letter-spacing: 0.5px;"
-        )
+        # State indicator with JRPG styling
+        self.state_indicator = QLabel("⚔️ READY TO FOCUS")
+        self.state_indicator.setStyleSheet(jrpg_theme.get_timer_state_indicator_style("idle"))
         self.state_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
         timer_layout.addWidget(self.state_indicator)
 
-        # Timer display
+        # Timer display with JRPG styling
         self.timer_label = QLabel("00:00")
-        self.timer_label.setStyleSheet(
-            "font-size: 56px; font-weight: 700; color: #212529; "
-            "background: transparent; border: none; font-family: monospace;"
-        )
+        self.timer_label.setStyleSheet(jrpg_theme.get_timer_display_style())
         self.timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         timer_layout.addWidget(self.timer_label)
 
@@ -894,10 +853,8 @@ class FocusMainWindow(QMainWindow):
         progress_layout.setSpacing(4)
         progress_section.setLayout(progress_layout)
 
-        self.progress_label = QLabel("Break time progress")
-        self.progress_label.setStyleSheet(
-            "font-size: 11px; color: #868e96; background: transparent; border: none;"
-        )
+        self.progress_label = QLabel("⚡ BREAK TIME PROGRESS")
+        self.progress_label.setStyleSheet(jrpg_theme.get_section_header_style())
         self.progress_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         progress_layout.addWidget(self.progress_label)
 
@@ -905,28 +862,18 @@ class FocusMainWindow(QMainWindow):
         self.break_progress.setMaximum(100)
         self.break_progress.setValue(0)
         self.break_progress.setTextVisible(False)
-        self.break_progress.setFixedHeight(8)
-        self.break_progress.setStyleSheet("""
-            QProgressBar {
-                border: none;
-                border-radius: 4px;
-                background-color: #e9ecef;
-                text-align: center;
-            }
-            QProgressBar::chunk {
-                border-radius: 4px;
-                background-color: #28a745;
-            }
-        """)
+        self.break_progress.setFixedHeight(12)
+        # Apply JRPG stamina/break time progress bar style
+        self.break_progress.setStyleSheet(jrpg_theme.get_jrpg_progress_bar_style("stamina"))
         progress_layout.addWidget(self.break_progress)
 
         timer_layout.addWidget(progress_section)
         main_layout.addWidget(timer_section)
 
-        # Divider
+        # Divider with JRPG styling
         divider = QWidget()
-        divider.setFixedHeight(1)
-        divider.setStyleSheet("background-color: #e9ecef; border: none;")
+        divider.setFixedHeight(2)
+        divider.setStyleSheet(jrpg_theme.get_divider_style())
         main_layout.addWidget(divider)
 
         # Control buttons
@@ -937,85 +884,37 @@ class FocusMainWindow(QMainWindow):
         button_layout.setSpacing(10)
         button_container.setLayout(button_layout)
 
-        # Pause button
-        self.pause_button = QPushButton("Pause")
-        self.pause_button.setFixedSize(90, 36)
-        self.pause_button.setStyleSheet("""
-            QPushButton {
-                background-color: #fff3cd;
-                color: #856404;
-                font-size: 13px;
-                font-weight: 600;
-                border: 1px solid #ffc107;
-                border-radius: 6px;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #ffe69c;
-            }
-            QPushButton:pressed {
-                background-color: #ffc107;
-            }
-        """)
+        # Pause button with JRPG styling
+        self.pause_button = QPushButton("⏸ PAUSE")
+        self.pause_button.setMinimumSize(110, 40)
+        self.pause_button.setStyleSheet(jrpg_theme.get_pause_button_style())
         self.pause_button.clicked.connect(self._on_pause_clicked)
         button_layout.addWidget(self.pause_button)
 
-        # Cancel button
-        self.cancel_button = QPushButton("Cancel")
-        self.cancel_button.setFixedSize(90, 36)
-        self.cancel_button.setStyleSheet("""
-            QPushButton {
-                background-color: #f8d7da;
-                color: #721c24;
-                font-size: 13px;
-                font-weight: 600;
-                border: 1px solid #dc3545;
-                border-radius: 6px;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #f1aeb5;
-            }
-            QPushButton:pressed {
-                background-color: #dc3545;
-                color: white;
-            }
-        """)
+        # Cancel button with JRPG styling
+        self.cancel_button = QPushButton("🏃 FLEE")
+        self.cancel_button.setMinimumSize(110, 40)
+        self.cancel_button.setStyleSheet(jrpg_theme.get_cancel_button_style())
         self.cancel_button.setVisible(False)
         self.cancel_button.clicked.connect(self._on_cancel_clicked)
         button_layout.addWidget(self.cancel_button)
 
         button_layout.addStretch()
 
-        # Start/Break button (primary action)
-        self.start_button = QPushButton("🎯 Start Focus")
-        self.start_button.setFixedSize(130, 36)
-        self.start_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                font-size: 13px;
-                font-weight: 600;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 20px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:pressed {
-                background-color: #1e7e34;
-            }
-        """)
+        # Start/Break button (primary action) with JRPG styling
+        self.start_button = QPushButton("⚔️ ENTER BATTLE")
+        self.start_button.setMinimumSize(180, 45)
+        # Will be styled dynamically based on state (focus vs rest)
+        self.start_button.setStyleSheet(jrpg_theme.get_focus_button_style())
         self.start_button.clicked.connect(self._on_start_clicked)
         button_layout.addWidget(self.start_button)
 
         main_layout.addWidget(button_container)
 
-        # Divider
+        # Divider with JRPG styling
         divider2 = QWidget()
-        divider2.setFixedHeight(1)
-        divider2.setStyleSheet("background-color: #e9ecef; border: none;")
+        divider2.setFixedHeight(2)
+        divider2.setStyleSheet(jrpg_theme.get_divider_style())
         main_layout.addWidget(divider2)
 
         # Quick Access buttons section
@@ -1026,12 +925,9 @@ class FocusMainWindow(QMainWindow):
         quick_access_layout.setSpacing(8)
         quick_access_section.setLayout(quick_access_layout)
 
-        # Quick Access label
-        quick_access_label = QLabel("Quick Access:")
-        quick_access_label.setStyleSheet(
-            "font-size: 12px; font-weight: 600; color: #6c757d; "
-            "background: transparent; border: none;"
-        )
+        # Quick Access label with JRPG styling
+        quick_access_label = QLabel("📚 QUICK ACCESS")
+        quick_access_label.setStyleSheet(jrpg_theme.get_section_header_style())
         quick_access_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         quick_access_layout.addWidget(quick_access_label)
 
@@ -1048,53 +944,81 @@ class FocusMainWindow(QMainWindow):
         quick_access_layout.addWidget(self.quick_access_grid)
         main_layout.addWidget(quick_access_section)
 
-        # Skill selection
+        # Skill selection section with XP display
         skill_section = QWidget()
         skill_section.setStyleSheet("background: transparent; border: none;")
-        skill_layout = QHBoxLayout()
+        skill_layout = QVBoxLayout()
         skill_layout.setContentsMargins(0, 0, 0, 0)
-        skill_layout.setSpacing(10)
+        skill_layout.setSpacing(6)
         skill_section.setLayout(skill_layout)
 
-        skill_label = QLabel("Current Skill:")
-        skill_label.setStyleSheet(
-            "font-size: 13px; font-weight: 600; color: #495057; "
-            "background: transparent; border: none;"
-        )
-        skill_layout.addWidget(skill_label)
+        # Skill selector row
+        selector_row = QWidget()
+        selector_row.setStyleSheet("background: transparent; border: none;")
+        selector_layout = QHBoxLayout()
+        selector_layout.setContentsMargins(0, 0, 0, 0)
+        selector_layout.setSpacing(10)
+        selector_row.setLayout(selector_layout)
+
+        skill_label = QLabel("🎯 EQUIPPED SKILL:")
+        skill_label.setStyleSheet(jrpg_theme.get_section_header_style())
+        selector_layout.addWidget(skill_label)
 
         self.skill_selection = QComboBox()
         skills = [skill.name.title() for skill in self.focus_app.new_skills.values()]
         self.skill_selection.addItems(skills)
-        self.skill_selection.setStyleSheet("""
-            QComboBox {
-                font-size: 13px;
-                padding: 6px 10px;
-                border: 1px solid #ced4da;
-                border-radius: 4px;
-                background-color: white;
-                color: #495057;
-            }
-            QComboBox:hover {
-                border-color: #80bdff;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-        """)
+        # Apply JRPG dropdown styling
+        self.skill_selection.setStyleSheet(jrpg_theme.get_skill_selector_style())
         if skills:
             self.skill_selection.setCurrentText(skills[0])
         self.skill_selection.currentTextChanged.connect(self._on_skill_changed)
-        skill_layout.addWidget(self.skill_selection, 1)
+        selector_layout.addWidget(self.skill_selection, 1)
+
+        skill_layout.addWidget(selector_row)
+
+        # XP Progress display for current skill
+        self.current_skill_xp_container = QWidget()
+        self.current_skill_xp_container.setStyleSheet("background: transparent; border: none;")
+        xp_display_layout = QVBoxLayout()
+        xp_display_layout.setContentsMargins(0, 0, 0, 0)
+        xp_display_layout.setSpacing(4)
+        self.current_skill_xp_container.setLayout(xp_display_layout)
+
+        # Level and XP text
+        self.current_skill_info_label = QLabel()
+        self.current_skill_info_label.setStyleSheet("""
+            QLabel {
+                font-size: 11px;
+                color: #e0e8ff;
+                background: transparent;
+                border: none;
+            }
+        """)
+        xp_display_layout.addWidget(self.current_skill_info_label)
+
+        # XP Progress bar
+        self.current_skill_xp_bar = QProgressBar()
+        self.current_skill_xp_bar.setMaximum(100)
+        self.current_skill_xp_bar.setValue(0)
+        self.current_skill_xp_bar.setTextVisible(False)
+        self.current_skill_xp_bar.setFixedHeight(10)
+        self.current_skill_xp_bar.setStyleSheet(jrpg_theme.get_jrpg_progress_bar_style("xp"))
+        xp_display_layout.addWidget(self.current_skill_xp_bar)
+
+        skill_layout.addWidget(self.current_skill_xp_container)
+
+        # Update XP display initially
+        self._update_current_skill_xp_display()
 
         main_layout.addWidget(skill_section)
 
-        # Session statistics
+        # Session statistics with JRPG styling
         stats_section = QWidget()
-        stats_section.setStyleSheet("background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 6px;")
+        stats_section.setObjectName("stats_panel")
+        stats_section.setStyleSheet(jrpg_theme.get_session_stats_style())
         stats_layout = QHBoxLayout()
-        stats_layout.setContentsMargins(15, 12, 15, 12)
-        stats_layout.setSpacing(20)
+        stats_layout.setContentsMargins(18, 15, 18, 15)
+        stats_layout.setSpacing(25)
         stats_section.setLayout(stats_layout)
 
         # Focused time
@@ -1126,28 +1050,46 @@ class FocusMainWindow(QMainWindow):
         self.timer_layout.addWidget(main_card)
 
     def _create_stat_widget(self, label, value, color):
-        """Create a stat display widget."""
+        """Create a stat display widget with JRPG styling."""
         widget = QWidget()
         widget.setStyleSheet("background: transparent; border: none;")
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(4)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         widget.setLayout(layout)
 
-        title = QLabel(label)
-        title.setStyleSheet(
-            f"font-size: 11px; color: #6c757d; font-weight: 600; "
-            f"background: transparent; border: none; text-transform: uppercase; letter-spacing: 0.5px;"
-        )
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
+        # Icon mapping for stats
+        stat_icons = {
+            "Focused": "⚔️",
+            "Break": "💤",
+            "Earned": "⭐"
+        }
 
+        # Icon and title container
+        title_container = QWidget()
+        title_container.setStyleSheet("background: transparent; border: none;")
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+        title_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_container.setLayout(title_layout)
+
+        # Icon
+        icon = QLabel(stat_icons.get(label, "📊"))
+        icon.setStyleSheet(jrpg_theme.get_stat_icon_style())
+        title_layout.addWidget(icon)
+
+        # Title with JRPG styling
+        title = QLabel(label.upper())
+        title.setStyleSheet(jrpg_theme.get_stat_label_style("title"))
+        title_layout.addWidget(title)
+
+        layout.addWidget(title_container)
+
+        # Value with JRPG styling
         value_label = QLabel(value)
-        value_label.setStyleSheet(
-            f"font-size: 16px; font-weight: 700; color: {color}; "
-            f"background: transparent; border: none; font-family: monospace;"
-        )
+        value_label.setStyleSheet(jrpg_theme.get_stat_label_style("value"))
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(value_label)
 
@@ -1181,10 +1123,7 @@ class FocusMainWindow(QMainWindow):
         title_container.setLayout(title_layout)
 
         title = QLabel("EARNED")
-        title.setStyleSheet(
-            "font-size: 11px; color: #6c757d; font-weight: 600; "
-            "background: transparent; border: none; text-transform: uppercase; letter-spacing: 0.5px;"
-        )
+        title.setStyleSheet(jrpg_theme.get_stat_label_style("title"))
         title_layout.addWidget(title)
 
         # Reset button (circular arrow icon)
@@ -1213,12 +1152,9 @@ class FocusMainWindow(QMainWindow):
 
         layout.addWidget(title_container)
 
-        # Value label
+        # Value label with JRPG styling
         self.earned_break_time_label = QLabel("0 min")
-        self.earned_break_time_label.setStyleSheet(
-            "font-size: 16px; font-weight: 700; color: #6c757d; "
-            "background: transparent; border: none; font-family: monospace;"
-        )
+        self.earned_break_time_label.setStyleSheet(jrpg_theme.get_stat_label_style("value"))
         self.earned_break_time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.earned_break_time_label)
 
@@ -1235,7 +1171,29 @@ class FocusMainWindow(QMainWindow):
             SkillsService().mark_skill_as_used(skill.id)
             self._refresh_quick_access_buttons()
 
+        # Update XP display for newly selected skill
+        self._update_current_skill_xp_display()
+
         print(f"Skill changed to: {skill_name}")
+
+    def _update_current_skill_xp_display(self):
+        """Update the XP progress display for the currently selected skill."""
+        if not hasattr(self.focus_app, 'current_skill') or not self.focus_app.current_skill:
+            return
+
+        skill = self.focus_app.current_skill
+        total_xp_for_level = skill.xp + skill.xp_to_next_level
+        current_progress = (
+            skill.xp / total_xp_for_level if total_xp_for_level > 0 else 0
+        )
+
+        # Update info label with level and XP
+        self.current_skill_info_label.setText(
+            f"Level {skill.level}  •  {skill.xp} / {total_xp_for_level} XP  •  Next: {skill.xp_to_next_level} XP"
+        )
+
+        # Update progress bar
+        self.current_skill_xp_bar.setValue(int(current_progress * 100))
 
     def _on_quick_access_clicked(self, skill_name):
         """Handle quick access button click."""
@@ -1262,6 +1220,13 @@ class FocusMainWindow(QMainWindow):
             if item.widget():
                 item.widget().deleteLater()
 
+        # Clear existing keyboard shortcuts
+        if hasattr(self, '_quick_access_shortcuts'):
+            for shortcut in self._quick_access_shortcuts:
+                shortcut.setEnabled(False)
+                shortcut.deleteLater()
+        self._quick_access_shortcuts = []
+
         # Get recent skills (up to 8)
         recent_skills = SkillsService().get_recent_skills(8)
 
@@ -1275,16 +1240,19 @@ class FocusMainWindow(QMainWindow):
             row = idx // 4  # 0 or 1 (2 rows)
             col = idx % 4   # 0-3 (4 columns)
 
+            # Keyboard shortcut number (1-8)
+            shortcut_num = idx + 1
+
             # Truncate long skill names to 14 characters
-            button_text = skill.name.title()
-            if len(button_text) > 14:
-                button_text = button_text[:14] + "…"
+            button_text = f"[{shortcut_num}] {skill.name.title()}"
+            if len(button_text) > 16:
+                button_text = f"[{shortcut_num}] {skill.name.title()[:12]}…"
 
             button = QPushButton(button_text)
-            button.setFixedSize(110, 32)
+            button.setFixedSize(115, 32)
 
-            # Add tooltip with full skill name
-            button.setToolTip(skill.name.title())
+            # Add tooltip with full skill name and keyboard shortcut
+            button.setToolTip(f"{skill.name.title()}\nKeyboard: {shortcut_num}")
 
             # Check if this is the currently selected skill
             is_current = (
@@ -1293,52 +1261,18 @@ class FocusMainWindow(QMainWindow):
                 skill.name == self.focus_app.current_skill.name
             )
 
-            # Apply different styling for current vs non-current skills
-            if is_current:
-                button.setStyleSheet("""
-                    QPushButton {
-                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #667eea, stop:1 #764ba2);
-                        color: white;
-                        font-size: 11px;
-                        font-weight: 600;
-                        border: 1px solid #5568d3;
-                        border-radius: 4px;
-                        padding: 4px 8px;
-                    }
-                    QPushButton:hover {
-                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #5568d3, stop:1 #6a3f92);
-                    }
-                    QPushButton:pressed {
-                        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                            stop:0 #4a5bc4, stop:1 #5d3682);
-                    }
-                """)
-            else:
-                button.setStyleSheet("""
-                    QPushButton {
-                        background-color: #e9ecef;
-                        color: #495057;
-                        font-size: 11px;
-                        font-weight: 500;
-                        border: 1px solid #ced4da;
-                        border-radius: 4px;
-                        padding: 4px 8px;
-                    }
-                    QPushButton:hover {
-                        background-color: #dee2e6;
-                        border-color: #adb5bd;
-                    }
-                    QPushButton:pressed {
-                        background-color: #ced4da;
-                    }
-                """)
+            # Apply JRPG styling based on whether this is the current skill
+            button.setStyleSheet(jrpg_theme.get_quick_access_button_style(is_current))
 
             # Use lambda with default argument to capture the skill name
             button.clicked.connect(lambda checked, name=skill.name: self._on_quick_access_clicked(name))
 
             self.quick_access_grid_layout.addWidget(button, row, col)
+
+            # Add keyboard shortcut
+            shortcut = QShortcut(QKeySequence(str(shortcut_num)), self)
+            shortcut.activated.connect(lambda name=skill.name: self._on_quick_access_clicked(name))
+            self._quick_access_shortcuts.append(shortcut)
 
     def _on_pause_clicked(self):
         """Handle pause button click - pause or resume timer."""
